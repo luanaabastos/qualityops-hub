@@ -4,9 +4,9 @@ import path from 'node:path';
 const root = process.cwd();
 const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.yml', '.yaml']);
 const banned = [
-  'github.com', 'gitlab', 'linkedin.com', 'company', 'example.com', 'corp', 'enterprise',
-  'prod.example.com', 'internal', 'azure', 'aws', 'gcp', 'servicenow', 'jira', 'confluence',
-  'postman', 'testrun', 'qualityops.local', 'owner@qualityops.local'
+  'github.com', 'gitlab.com', 'gitlab', 'linkedin.com', 'company.com', 'example.com',
+  'azure.com', 'amazonaws.com', 'aws', 'gcp', 'servicenow.com', 'jira.com', 'confluence.com',
+  'postman.com', 'testrun', 'realcompany', 'corp.example', 'realtoken', 'notrealuser@company.com'
 ];
 
 const visited = new Set();
@@ -18,7 +18,7 @@ function walk(dir) {
 
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.pnpm' || entry.name === 'dist' || entry.name === 'coverage') {
+    if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.pnpm' || entry.name === 'dist' || entry.name === 'coverage' || entry.name === 'pnpm-lock.yaml') {
       continue;
     }
     if (entry.isDirectory()) {

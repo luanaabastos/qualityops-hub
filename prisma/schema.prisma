@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NormalizedStatus {
+  PASSED
+  FAILED
+  SKIPPED
+  ERROR
+  NOT_EXECUTED
+}
+
+enum ProductStatus {
+  ACTIVE
+  STALE
+  CONFIGURATION_PENDING
+  ERROR
+  NO_EXECUTION
+}
+
+enum FreshnessState {
+  FRESH
+  STALE
+  OVERDUE
+}
+
+enum PipelineSource {
+  PULL_REQUEST
+  PUSH_MAIN
+  SCHEDULE
+  RELEASE
+  MANUAL
+}
+
+model Product {
+  id                  String      @id @default(cuid())
+  productKey          String      @unique
+  name                String
+  description         String
+  framework           String
+  reportFormat        String
+  status              ProductStatus
+  branch              String
+  latestPipeline      String?
+  freshness           FreshnessState
+  automationCoverage  Float?
+  lastExecutionAt     DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  executions          TestExecution[]
+}
+
+model PipelineMetadata {
+  id           String   @id @default(cuid())
+  provider     String   @default("github-actions")
+  repository   String
+  branch       String
+  commitSha    String
+  pipelineId   String
+  pipelineUrl  String
+  jobId        String
+  jobName      String
+  jobUrl       String
+  artifactUrl  String
+  environment  String
+  source       PipelineSource
+  suiteType    String
+  startedAt    DateTime
+  finishedAt   DateTime
+  executionId  String   @unique
+  execution    TestExecution @relation(fields: [executionId], references: [id])
+}
+
+model TestExecution {
+  id              String            @id @default(cuid())
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id])
+  executionKey    String            @unique
+  status          NormalizedStatus
+  total           Int
+  executed        Int
+  passed          Int
+  failed          Int
+  skipped         Int
+  infrastructureErrors Int
+  durationMs      Int
+  approvalRate    Float?
+  qualityScore    Float?
+  startedAt       DateTime
+  finishedAt      DateTime
+  createdAt       DateTime          @default(now())
+
+  pipeline        PipelineMetadata?
+  suites          TestSuite[]
+}
+
+model TestSuite {
+  id              String          @id @default(cuid())
+  executionId     String
+  execution       TestExecution   @relation(fields: [executionId], references: [id])
+  name            String
+  suiteType       String
+  status          NormalizedStatus
+  total           Int
+  passed          Int
+  failed          Int
+  skipped         Int
+  infrastructureErrors Int
+  startedAt       DateTime?
+  finishedAt      DateTime?
+
+  cases           TestCaseResult[]
+}
+
+model TestCaseResult {
+  id                  String           @id @default(cuid())
+  suiteId             String
+  suite               TestSuite        @relation(fields: [suiteId], references: [id])
+  name                String
+  scenarioId          String?
+  status              NormalizedStatus
+  durationMs          Int
+  errorType           String?
+  errorMessage        String?
+  isNewFailure        Boolean          @default(false)
+  isRecovered         Boolean          @default(false)
+  startedAt           DateTime?
+  finishedAt          DateTime?
+}

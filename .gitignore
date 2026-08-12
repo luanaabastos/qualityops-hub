@@ -11,3 +11,5 @@ playwright-report
 **/.cache
 **/tmp
 **/generated
+.demo-state.json
+artifacts/

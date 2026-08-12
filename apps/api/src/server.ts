@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { demoProducts, qualitySummary } from '@qualityops-hub/shared';
+import { dashboardPayload, productByKey, executionsForProduct } from './routes.js';
 
 const app = Fastify({ logger: false });
 
@@ -19,14 +19,42 @@ app.get('/api/readiness', async () => ({
   backgroundJobs: 'ok'
 }));
 
-app.get('/api/dashboard', async () => ({
-  ...qualitySummary,
-  products: demoProducts
-}));
+app.get('/api/dashboard', async () => dashboardPayload);
 
 app.get('/api/products', async () => ({
-  products: demoProducts
+  products: dashboardPayload.productsSummary
 }));
+
+app.get('/api/products/:key', async (request, reply) => {
+  const { key } = request.params as { key: string };
+  const product = productByKey(key);
+
+  if (!product) {
+    reply.code(404);
+    return { error: 'Product not found' };
+  }
+
+  return { product };
+});
+
+app.get('/api/products/:key/executions', async (request) => {
+  const { key } = request.params as { key: string };
+  return { executions: executionsForProduct(key) };
+});
+
+app.get('/api/executions/:id', async (request) => {
+  const { id } = request.params as { id: string };
+  const all = dashboardPayload.productsSummary.flatMap((product: (typeof dashboardPayload.productsSummary)[number]) =>
+    executionsForProduct(product.key).map((execution: ReturnType<typeof executionsForProduct>[number]) => ({ ...execution, productName: product.name }))
+  );
+  const execution = all.find((entry: (typeof all)[number]) => entry.id === id);
+
+  if (!execution) {
+    return { error: 'Execution not found' };
+  }
+
+  return { execution };
+});
 
 const start = async () => {
   try {

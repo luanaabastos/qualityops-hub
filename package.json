@@ -3,12 +3,32 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@11.21.0",
+  "volta": {
+    "node": "20.20.1",
+    "pnpm": "11.21.0"
+  },
+  "engines": {
+    "node": ">=20.20.1 <21",
+    "pnpm": "11.21.0"
+  },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test -- --run",
-    "scan:references": "node scripts/reference-scan.mjs"
+    "test:e2e": "playwright test",
+    "scan:references": "node scripts/reference-scan.mjs",
+    "scan:secrets": "node scripts/secret-scan.mjs",
+    "demo:start": "node scripts/demo-runner.mjs start",
+    "demo:stop": "node scripts/demo-runner.mjs stop",
+    "demo:status": "node scripts/demo-runner.mjs status"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.48.2",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "globals": "^17.9.0"
   }
 }

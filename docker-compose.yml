@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: qualityops_dev
+      POSTGRES_USER: qualityops
+      POSTGRES_PASSWORD: qualityops
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: qualityops-demo
+      MINIO_ROOT_PASSWORD: qualityops-demo-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  api:
+    build:
+      context: ./apps/api
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://qualityops:qualityops@postgres:5432/qualityops_dev?schema=public
+    depends_on:
+      - postgres
+      - minio
+
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  minio-data:
