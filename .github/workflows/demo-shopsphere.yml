@@ -1,0 +1,38 @@
+name: ShopSphere Demo Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run
+        required: true
+        default: Regression
+        type: choice
+        options:
+          - Regression
+          - Smoke
+      failureMode:
+        description: Failure behavior
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - functional-failure
+          - infrastructure-failure
+
+jobs:
+  cypress-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: echo "Cypress demo pipeline for ShopSphere is running."
+      - run: node -e "const mode = '${{ github.event.inputs.failureMode }}'; const suite='${{ github.event.inputs.suite }}'; console.log('SHOPSPHERE_DEMO'); console.log(JSON.stringify({ product: 'shopsphere', suite, failureMode: mode, framework: 'Cypress real demo', modeLabel: 'DEMO' }, null, 2));" > report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shopsphere-demo-report
+          path: report.json

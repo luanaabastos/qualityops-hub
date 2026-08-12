@@ -1,0 +1,14 @@
+{
+  "name": "qualityops-hub",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test -- --run",
+    "scan:references": "node scripts/reference-scan.mjs"
+  }
+}

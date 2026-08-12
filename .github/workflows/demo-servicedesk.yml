@@ -1,0 +1,38 @@
+name: ServiceDesk Demo Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run
+        required: true
+        default: E2E
+        type: choice
+        options:
+          - E2E
+          - Smoke
+      failureMode:
+        description: Failure behavior
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - functional-failure
+          - infrastructure-failure
+
+jobs:
+  playwright-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: echo "Playwright demo pipeline for ServiceDesk is running."
+      - run: node -e "const mode = '${{ github.event.inputs.failureMode }}'; const suite='${{ github.event.inputs.suite }}'; console.log('SERVICEDESK_DEMO'); console.log(JSON.stringify({ product: 'servicedesk', suite, failureMode: mode, framework: 'Playwright real demo', modeLabel: 'DEMO' }, null, 2));" > report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: servicedesk-demo-report
+          path: report.json
