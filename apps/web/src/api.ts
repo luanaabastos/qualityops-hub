@@ -31,3 +31,8 @@ export async function fetchExecutions(key: string) {
   }
   return response.json();
 }
+
+export async function fetchAllExecutions(keys: string[]) {
+  const responses = await Promise.all(keys.map((key) => fetchExecutions(key)));
+  return responses.flatMap((payload) => payload.executions);
+}

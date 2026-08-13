@@ -8,8 +8,10 @@ dist
 !.env.example
 .DS_Store
 playwright-report
+test-results/
 **/.cache
 **/tmp
 **/generated
 .demo-state.json
+.demo-logs/
 artifacts/

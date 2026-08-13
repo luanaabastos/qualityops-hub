@@ -64,7 +64,7 @@ export const productSchema = z.object({
   freshness: z.enum(['FRESH', 'STALE', 'OVERDUE']),
   summary: executionSummarySchema,
   latestRegression: z.string().nullable(),
-  automationCoverage: z.number().min(0).max(100),
+  automationCoverage: z.number().min(0).max(100).nullable(),
   executionPolicy: z.object({
     source: z.enum(['Pull Request', 'Push main', 'Schedule', 'Release', 'Manual']),
     suiteType: suiteTypeSchema,

@@ -4,6 +4,7 @@ export type ProductSummary = {
   key: string;
   name: string;
   framework: string;
+  reportFormat: string;
   status: ProductStatus;
   total: number;
   executed: number;
@@ -18,6 +19,7 @@ export type ProductSummary = {
   pipeline: string;
   commit: string;
   statusLabel: string;
+  syntheticData: true;
 };
 
 export type DashboardResponse = {
@@ -43,7 +45,15 @@ export type Execution = {
   executed: number;
   passed: number;
   failed: number;
+  infrastructureErrors: number;
   approval: number | null;
   duration: number;
   source: string;
+};
+
+export type RegressionDelta = {
+  newFailures: number;
+  recoveredTests: number;
+  persistentFailures: number;
+  newTests: number;
 };

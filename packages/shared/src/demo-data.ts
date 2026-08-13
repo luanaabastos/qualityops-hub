@@ -11,10 +11,10 @@ const exampleProducts: Product[] = [
     status: 'ACTIVE',
     lastExecutionAt: '2026-08-12T06:15:00.000Z',
     branch: 'release/august',
-    pipeline: 'shop-regression-318',
+    pipeline: 'shopsphere-regression-318',
     freshness: 'FRESH',
     latestRegression: '2026-08-11T21:45:00.000Z',
-    automationCoverage: 72,
+    automationCoverage: null,
     executionPolicy: {
       source: 'Push main',
       suiteType: 'Regression',
@@ -22,15 +22,15 @@ const exampleProducts: Product[] = [
       freshnessTargetHours: 24
     },
     summary: {
-      total: 140,
-      executed: 128,
-      passed: 118,
-      failed: 6,
-      skipped: 4,
-      infrastructureErrors: 2,
+      total: 46,
+      executed: 46,
+      passed: 43,
+      failed: 3,
+      skipped: 0,
+      infrastructureErrors: 0,
       durationMs: 1840000,
-      approvalRate: 92.2,
-      qualityScore: 89.4
+      approvalRate: 93.5,
+      qualityScore: 83.7
     }
   },
   {
@@ -41,12 +41,12 @@ const exampleProducts: Product[] = [
     framework: 'Playwright',
     reportFormat: 'Playwright JSON/JUnit',
     status: 'STALE',
-    lastExecutionAt: '2026-08-09T15:30:00.000Z',
+    lastExecutionAt: '2026-07-21T15:40:00.000Z',
     branch: 'main',
-    pipeline: 'support-e2e-154',
+    pipeline: 'servicedesk-e2e-154',
     freshness: 'STALE',
     latestRegression: '2026-08-08T17:15:00.000Z',
-    automationCoverage: 68,
+    automationCoverage: null,
     executionPolicy: {
       source: 'Schedule',
       suiteType: 'E2E',
@@ -54,31 +54,31 @@ const exampleProducts: Product[] = [
       freshnessTargetHours: 16
     },
     summary: {
-      total: 116,
-      executed: 92,
-      passed: 82,
-      failed: 9,
-      skipped: 1,
+      total: 32,
+      executed: 32,
+      passed: 30,
+      failed: 2,
+      skipped: 0,
       infrastructureErrors: 0,
       durationMs: 1650000,
-      approvalRate: 89.1,
-      qualityScore: 82.5
+      approvalRate: 93.8,
+      qualityScore: 84.4
     }
   },
   {
     id: 'prod-pocketwallet',
     name: 'PocketWallet',
-    description: 'Fictional mobile finance experience',
+    description: 'Fictional mobile harness recovery demonstration',
     productKey: 'pocketwallet',
-    framework: 'Appium/WebdriverIO',
-    reportFormat: 'mobile-e2e-json-v1',
+    framework: 'Mobile Harness Demo',
+    reportFormat: 'Synthetic mobile JSON',
     status: 'ACTIVE',
-    lastExecutionAt: '2026-08-12T05:10:00.000Z',
+    lastExecutionAt: '2026-08-12T07:20:00.000Z',
     branch: 'release/mobile',
-    pipeline: 'mobile-regression-42',
+    pipeline: 'pocketwallet-mobile-42',
     freshness: 'FRESH',
     latestRegression: '2026-08-11T23:40:00.000Z',
-    automationCoverage: 74,
+    automationCoverage: null,
     executionPolicy: {
       source: 'Manual',
       suiteType: 'Mobile',
@@ -86,15 +86,15 @@ const exampleProducts: Product[] = [
       freshnessTargetHours: 12
     },
     summary: {
-      total: 90,
-      executed: 77,
-      passed: 71,
-      failed: 3,
-      skipped: 2,
-      infrastructureErrors: 1,
-      durationMs: 2140000,
-      approvalRate: 92.2,
-      qualityScore: 91.1
+      total: 18,
+      executed: 18,
+      passed: 18,
+      failed: 0,
+      skipped: 0,
+      infrastructureErrors: 0,
+      durationMs: 1160000,
+      approvalRate: 100,
+      qualityScore: 100
     }
   }
 ];
@@ -111,6 +111,6 @@ export const qualitySummary = {
   products: 3,
   productsWithRecentExecution: 2,
   productsStale: 1,
-  automationCoverage: 71.3,
+  automationCoverage: null,
   latestRegression: '2026-08-11T21:45:00.000Z'
 };

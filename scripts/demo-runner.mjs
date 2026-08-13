@@ -3,8 +3,9 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
 const stateFile = path.join(process.cwd(), '.demo-state.json');
+const logDirectory = path.join(process.cwd(), '.demo-logs');
 const action = process.argv[2] ?? 'status';
-const volataBin = process.platform === 'win32' ? 'C:\\Program Files\\Volta\\volta.exe' : 'volta';
+const root = process.cwd();
 
 function readState() {
   try {
@@ -21,10 +22,6 @@ function writeState(next) {
 function isRunning(pid) {
   if (!pid) return false;
   try {
-    if (process.platform === 'win32') {
-      const result = spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
-      return result.status === 128;
-    }
     process.kill(pid, 0);
     return true;
   } catch {
@@ -45,27 +42,45 @@ function killPid(pid) {
   }
 }
 
-function startProcess(command, args, label) {
-  return spawn(command, args, {
-    cwd: process.cwd(),
+function startProcess(args, cwd, label) {
+  fs.mkdirSync(logDirectory, { recursive: true });
+  const log = fs.openSync(path.join(logDirectory, `${label}.log`), 'a');
+  const child = spawn(process.execPath, args, {
+    cwd,
     env: process.env,
-    stdio: 'ignore',
-    detached: process.platform !== 'win32'
+    stdio: ['ignore', log, log],
+    detached: true,
+    windowsHide: true
   });
+  child.unref();
+  fs.closeSync(log);
+  return child;
 }
 
 if (action === 'start') {
   const existing = readState();
-  if (existing.started && (existing.webPid || existing.apiPid)) {
+  if (existing.started && isRunning(existing.webPid) && isRunning(existing.apiPid)) {
     console.log('Demo already running');
     console.log('Frontend: http://localhost:5173');
     console.log('API: http://localhost:3001');
     console.log('Health: http://localhost:3001/api/health');
+    console.log('Readiness: http://localhost:3001/api/readiness');
     process.exit(0);
   }
 
-  const web = startProcess(volataBin, ['run', '--node', '20.20.1', 'pnpm', '--dir', 'apps/web', 'dev', '--host', '0.0.0.0'], 'web');
-  const api = startProcess(volataBin, ['run', '--node', '20.20.1', 'pnpm', '--dir', 'apps/api', 'dev', '--host', '0.0.0.0'], 'api');
+  killPid(existing.webPid);
+  killPid(existing.apiPid);
+
+  const web = startProcess(
+    [path.join(root, 'apps', 'web', 'node_modules', 'vite', 'bin', 'vite.js'), '--host', '0.0.0.0'],
+    path.join(root, 'apps', 'web'),
+    'web'
+  );
+  const api = startProcess(
+    ['--import', 'tsx', 'src/server.ts'],
+    path.join(root, 'apps', 'api'),
+    'api'
+  );
 
   writeState({
     started: true,
@@ -76,6 +91,7 @@ if (action === 'start') {
     frontendUrl: 'http://localhost:5173',
     apiUrl: 'http://localhost:3001',
     healthUrl: 'http://localhost:3001/api/health',
+    readinessUrl: 'http://localhost:3001/api/readiness',
     minioUrl: 'http://localhost:9001'
   });
 
@@ -83,6 +99,7 @@ if (action === 'start') {
   console.log('Frontend: http://localhost:5173');
   console.log('API: http://localhost:3001');
   console.log('Health: http://localhost:3001/api/health');
+  console.log('Readiness: http://localhost:3001/api/readiness');
   console.log('MinIO: http://localhost:9001');
   process.exit(0);
 }
@@ -105,6 +122,7 @@ if (action === 'stop') {
     frontendUrl: 'http://localhost:5173',
     apiUrl: 'http://localhost:3001',
     healthUrl: 'http://localhost:3001/api/health',
+    readinessUrl: 'http://localhost:3001/api/readiness',
     minioUrl: 'http://localhost:9001'
   });
   console.log('Demo stopped');
@@ -112,12 +130,17 @@ if (action === 'stop') {
 }
 
 const state = readState();
+const webRunning = isRunning(state.webPid);
+const apiRunning = isRunning(state.apiPid);
 console.log(JSON.stringify({
-  running: !!state.started,
+  running: webRunning && apiRunning,
+  webRunning,
+  apiRunning,
   webPid: state.webPid ?? null,
   apiPid: state.apiPid ?? null,
   frontendUrl: state.frontendUrl ?? 'http://localhost:5173',
   apiUrl: state.apiUrl ?? 'http://localhost:3001',
   healthUrl: state.healthUrl ?? 'http://localhost:3001/api/health',
+  readinessUrl: state.readinessUrl ?? 'http://localhost:3001/api/readiness',
   minioUrl: state.minioUrl ?? 'http://localhost:9001'
 }, null, 2));

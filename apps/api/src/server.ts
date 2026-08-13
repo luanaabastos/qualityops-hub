@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { dashboardPayload, productByKey, executionsForProduct } from './routes.js';
 
 const app = Fastify({ logger: false });
@@ -14,9 +16,11 @@ app.get('/api/health', async () => ({
 
 app.get('/api/readiness', async () => ({
   status: 'ready',
-  database: 'ok',
-  objectStorage: 'ok',
-  backgroundJobs: 'ok'
+  mode: 'demo',
+  demoData: 'ready',
+  database: 'not-required',
+  objectStorage: 'not-required',
+  backgroundJobs: 'not-required'
 }));
 
 app.get('/api/dashboard', async () => dashboardPayload);
@@ -42,7 +46,7 @@ app.get('/api/products/:key/executions', async (request) => {
   return { executions: executionsForProduct(key) };
 });
 
-app.get('/api/executions/:id', async (request) => {
+app.get('/api/executions/:id', async (request, reply) => {
   const { id } = request.params as { id: string };
   const all = dashboardPayload.productsSummary.flatMap((product: (typeof dashboardPayload.productsSummary)[number]) =>
     executionsForProduct(product.key).map((execution: ReturnType<typeof executionsForProduct>[number]) => ({ ...execution, productName: product.name }))
@@ -50,6 +54,7 @@ app.get('/api/executions/:id', async (request) => {
   const execution = all.find((entry: (typeof all)[number]) => entry.id === id);
 
   if (!execution) {
+    reply.code(404);
     return { error: 'Execution not found' };
   }
 
@@ -66,7 +71,11 @@ const start = async () => {
   }
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = process.argv[1]
+  ? path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1])
+  : false;
+
+if (isMainModule) {
   start();
 }
 

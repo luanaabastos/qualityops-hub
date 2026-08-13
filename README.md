@@ -1,88 +1,106 @@
 # QualityOps Hub
 
-QualityOps Hub is an independent open-source TestOps portfolio project created to reduce the manual work involved in monitoring automated tests.
+QualityOps Hub is an independent open-source TestOps portfolio project that demonstrates how automated test results can become traceable quality signals.
 
-Automated test results often live across CI pipelines, framework-specific reports, spreadsheets and evidence files.
+All products, users, executions and integrations in this repository are fictional and exist only for demonstration. The interface marks data-bearing pages with `DEMO DATA`.
 
-QualityOps Hub centralizes those signals into one platform and transforms CI executions into history, coverage, traceability and quality indicators.
+## What is implemented
 
-All applications, users, test data and integrations in this repository are fictional and created exclusively for demonstration purposes.
+- Product overview with approval, freshness and execution indicators
+- Synthetic history for ShopSphere, ServiceDesk and PocketWallet
+- Passed, failed, stale and infrastructure-error outcomes
+- Regression delta based on stable scenario identity
+- Product and status filters with an explicit empty state
+- Accessible desktop navigation and a keyboard-managed mobile drawer
+- Health and demo-mode readiness endpoints
+- Responsive coverage across five viewports
+- Unit, integration and Playwright desktop/mobile tests
+- Local screenshot evidence with SHA-256 manifest generation
 
-## Problem
+Automation coverage is intentionally not inferred. Until scenario coverage is configured, the dashboard displays `Coverage not configured`.
 
-Quality engineering teams spend too much time gathering test outcomes from fragmented reporting sources before they can make decisions. The result is slow incident triage, inconsistent quality signals and poor regression awareness.
+## Prerequisites
 
-## Solution
+- Node.js `20.20.1`
+- pnpm `10.34.5`
 
-QualityOps Hub normalizes execution artifacts from different test frameworks into a common model, stores historical execution data and exposes a dashboard with quality indicators, regression tracking and evidence traceability.
+The versions are pinned in `package.json`. [Volta](https://volta.sh/) is recommended for local version management.
+
+```bash
+volta install node@20.20.1 pnpm@10.34.5
+node --version
+pnpm --version
+```
+
+## Quick start
+
+```bash
+pnpm install --frozen-lockfile
+pnpm demo:start
+```
+
+Open:
+
+- Frontend: `http://localhost:5173`
+- API: `http://localhost:3001`
+- Health: `http://localhost:3001/api/health`
+- Readiness: `http://localhost:3001/api/readiness`
+
+Check or stop the demo with:
+
+```bash
+pnpm demo:status
+pnpm demo:stop
+```
+
+PostgreSQL and MinIO are planned persistence dependencies and are available through `docker-compose.yml`. They are not required by the current in-memory demo mode.
+
+## Validation
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e
+pnpm scan:references
+pnpm scan:secrets
+```
+
+With the demo running, generate local visual evidence using:
+
+```bash
+pnpm evidence:capture
+```
+
+Evidence is written under `artifacts/frontend-review/` and is ignored by Git.
 
 ## Architecture
 
-The platform follows a monorepo model with a Vite React web application, a Fastify API and a shared package for schemas and domain contracts.
+The monorepo contains:
 
-## Features
+- `apps/web`: React, TypeScript and Vite interface
+- `apps/api`: Fastify demo API
+- `packages/shared`: normalized schemas and metric helpers
+- `prisma`: planned PostgreSQL persistence schema
+- `tests`: Playwright acceptance coverage
 
-- Normalized execution model
-- Product overview dashboard
-- Historical execution search
-- Regression delta tracking
-- Flaky test radar
-- Scenarios and coverage views
-- Automation debt indicators
-- CSV/XLSX import flow
-- Video evidence management
-- Demo data and synthetic pipelines
-- GitHub Actions integration planning
+The public processing model is:
 
-## Demo
+`Code change → GitHub Actions → Automated Tests → Test Report → Artifact → QualityOps API → Normalizer → Persistence → Dashboard`
 
-The repository includes synthetic demo products for ShopSphere, ServiceDesk and PocketWallet. Demo data is generated intentionally to show realistic quality trends without implying real-world usage.
+## Windows runtime resolution
 
-## Screenshots
+When multiple Node.js installations exist on Windows, verify the command order with `where.exe node` and `where.exe pnpm`. Volta shims should appear before conflicting global installations in `PATH`. After correcting the order, open a new terminal and confirm both pinned versions before installing dependencies.
 
-Screenshots are not included in the initial checkpoint. The project focuses on a clean, responsive shell and clear architecture proof.
-
-## Quick Start
-
-```bash
-pnpm install
-pnpm build
-pnpm test
-```
-
-## Tech Stack
-
-- React + TypeScript + Vite
-- Fastify + TypeScript + Zod
-- PostgreSQL + Prisma
-- MinIO for local object storage
-- Vitest + Playwright
-- GitHub Actions
-- Docker + Docker Compose
-
-## Testing Strategy
-
-- Unit tests for shared logic
-- Integration tests for API contracts
-- E2E tests for UI shells and workflows
-- Zero structural skips
-
-## Security
-
-The project is designed for educational and demo use with secure defaults: validation, rate limiting, secure headers, hashed tokens and audit-oriented APIs.
+This machine-level adjustment is separate from the project configuration; do not relax the Node engine requirement to hide a local PATH conflict.
 
 ## Roadmap
 
-- Expand product models and dashboards
-- Add PostgreSQL and Prisma schemas
-- Implement ingestion endpoints and token lifecycle
-- Build demo data generation and pipeline simulations
-- Add Playwright E2E coverage and GitHub Actions workflows
+- Connect the Prisma schema to PostgreSQL persistence
+- Implement authenticated ingestion and token lifecycle
+- Add background jobs and MinIO evidence storage
+- Replace placeholder coverage and integration pages with verified workflows
+- Add CI automation after repository publication is explicitly authorized
 
-## License
-
-This project is planned for a permissive open-source license. The current checkpoint leaves the final license choice open pending human review of MIT vs Apache-2.0 tradeoffs.
-
----
-
-This checkpoint intentionally keeps the project public, synthetic and independent from any external repository or corporate context.
+No remote repository or publishing workflow is configured by this checkpoint.
