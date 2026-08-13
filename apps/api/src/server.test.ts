@@ -5,6 +5,7 @@ import type { ProductKey, ReportFormat } from '@qualityops-hub/shared';
 import { Database } from './database.js';
 import { QualityRepository } from './repository.js';
 import { buildApp } from './server.js';
+import { DemoCapacityError } from './demo-protection.js';
 import { IntegrationTokenService } from './token-service.js';
 
 let database: Database;
@@ -105,6 +106,27 @@ integrationDescribe('API and authenticated report ingestion', () => {
     expect((await app.inject({ method: 'POST', url: '/api/products/shopsphere/test-reports', headers: { authorization: `Bearer ${created.token}` }, payload: body })).statusCode).toBe(401);
   });
 
+  it('accepts the runtime-only Pipeline Lab credential without persisting it', async () => {
+    const demoSystemToken = 'production-like-system-token-value-123456789';
+    const demoApp = await buildApp({
+      database: new Database(testDatabaseUrl),
+      demoEnabled: false,
+      seed: false,
+      config: { demoSystemToken }
+    });
+    const body = { ...payload('shopsphere'), source: 'DEMO_PIPELINE' };
+    const response = await demoApp.inject({
+      method: 'POST',
+      url: '/api/products/shopsphere/test-reports',
+      headers: { authorization: `Bearer ${demoSystemToken}` },
+      payload: body
+    });
+    expect(response.statusCode).toBe(201);
+    const stored = await database.pool.query('SELECT COUNT(*) count FROM integration_tokens');
+    expect(Number(stored.rows[0].count)).toBe(0);
+    await demoApp.close();
+  });
+
   for (const product of ['shopsphere', 'servicedesk', 'pocketwallet'] as const) {
     it(`persists ${reports[product].format} through token -> POST -> DB -> GET`, async () => {
       const created = await tokens.create(product);
@@ -158,5 +180,63 @@ integrationDescribe('API and authenticated report ingestion', () => {
   it('does not register local demo routes when the feature flag is disabled', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/demo/runs', payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS' } });
     expect(response.statusCode).toBe(404);
+  });
+
+  it('rejects Pipeline Lab injection and oversized requests, then returns safe 429 responses', async () => {
+    const fakeJobs = {
+      initialize: async () => undefined,
+      enqueue: async (input: { product: string }) => {
+        if (input.product === 'servicedesk') throw new DemoCapacityError();
+        return { runId: randomUUID(), state: 'QUEUED' };
+      }
+    };
+    const demoApp = await buildApp({
+      database: new Database(testDatabaseUrl),
+      demoEnabled: true,
+      seed: false,
+      demoJobs: fakeJobs,
+      config: { demoRunCooldownMs: 0, demoRateLimitMax: 2, demoRateLimitWindowMs: 60_000 }
+    });
+    const injection = await demoApp.inject({
+      method: 'POST', url: '/api/demo/runs',
+      payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS', command: 'arbitrary-command' }
+    });
+    expect(injection.statusCode).toBe(400);
+
+    for (const invalid of [
+      { product: 'arbitrary-product', suite: 'SMOKE', mode: 'SUCCESS' },
+      { product: 'shopsphere', suite: 'arbitrary-suite', mode: 'SUCCESS' },
+      { product: 'shopsphere', suite: 'SMOKE', mode: 'arbitrary-mode' }
+    ]) {
+      const response = await demoApp.inject({ method: 'POST', url: '/api/demo/runs', payload: invalid });
+      expect(response.statusCode).toBe(400);
+    }
+
+    const oversized = await demoApp.inject({
+      method: 'POST', url: '/api/demo/runs',
+      payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS', padding: 'x'.repeat(5_000) }
+    });
+    expect(oversized.statusCode).toBe(413);
+    expect(oversized.json().error).toBe('Payload too large');
+
+    const capacity = await demoApp.inject({
+      method: 'POST', url: '/api/demo/runs',
+      payload: { product: 'servicedesk', suite: 'SMOKE', mode: 'SUCCESS' }
+    });
+    expect(capacity.statusCode).toBe(429);
+    expect(capacity.json().error).toBe('Demo capacity reached. Try again shortly.');
+
+    const accepted = await demoApp.inject({
+      method: 'POST', url: '/api/demo/runs',
+      payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS' }
+    });
+    expect(accepted.statusCode).toBe(202);
+    const rateLimited = await demoApp.inject({
+      method: 'POST', url: '/api/demo/runs',
+      payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS' }
+    });
+    expect(rateLimited.statusCode).toBe(429);
+    expect(rateLimited.headers['retry-after']).toBeTruthy();
+    await demoApp.close();
   });
 });

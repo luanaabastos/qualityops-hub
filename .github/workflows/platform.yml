@@ -10,7 +10,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -49,6 +49,8 @@ jobs:
       - name: Scan secrets
         run: pnpm scan:secrets
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Run compiled production smoke
+        run: pnpm test:production
       - name: Start platform and run browser acceptance
         run: |
           pnpm --filter @qualityops-hub/api exec tsx src/server.ts > api.log 2>&1 &
