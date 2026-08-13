@@ -16,6 +16,17 @@ if (!pnpmEntry) {
   process.exit(1);
 }
 
+const sharedBuild = spawnSync(process.execPath, [pnpmEntry, '--filter', '@qualityops-hub/shared', 'run', 'build'], {
+  cwd: process.cwd(),
+  env: process.env,
+  stdio: 'inherit'
+});
+
+if (sharedBuild.error || sharedBuild.status !== 0) {
+  console.error('Unable to build shared contracts before workspace gate.');
+  process.exit(1);
+}
+
 const result = spawnSync(process.execPath, [pnpmEntry, '--recursive', 'run', command], {
   cwd: process.cwd(),
   env: process.env,

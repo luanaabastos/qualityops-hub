@@ -18,6 +18,9 @@
     "typecheck": "node scripts/workspace-run.mjs typecheck",
     "test": "node scripts/workspace-run.mjs test",
     "test:e2e": "playwright test",
+    "integration-token:create": "pnpm --filter @qualityops-hub/api exec tsx src/token-cli.ts create",
+    "integration-token:rotate": "pnpm --filter @qualityops-hub/api exec tsx src/token-cli.ts rotate",
+    "integration-token:revoke": "pnpm --filter @qualityops-hub/api exec tsx src/token-cli.ts revoke",
     "evidence:capture": "node scripts/capture-evidence.mjs",
     "scan:references": "node scripts/reference-scan.mjs",
     "scan:secrets": "node scripts/secret-scan.mjs",
@@ -30,6 +33,9 @@
     "@playwright/test": "^1.48.2",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
-    "globals": "^17.9.0"
+    "cypress": "15.20.1",
+    "globals": "^17.9.0",
+    "mochawesome": "7.1.4",
+    "typescript": "5.9.3"
   }
 }
