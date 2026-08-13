@@ -14,6 +14,7 @@ export const fetchProduct = (key: string) => getJson(`/api/products/${key}`);
 export const fetchExecutions = (key: string) => getJson(`/api/products/${key}/executions`);
 export const fetchExecution = (id: string) => getJson(`/api/executions/${id}`);
 export const fetchDemoRun = (id: string) => getJson(`/api/demo/runs/${id}`);
+export const fetchReadiness = () => getJson('/api/readiness');
 
 export async function fetchAllExecutions(keys: string[]) {
   const responses = await Promise.all(keys.map((key) => fetchExecutions(key)));

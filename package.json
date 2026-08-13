@@ -1,5 +1,6 @@
 {
   "name": "qualityops-hub",
+  "description": "A portfolio TestOps platform that turns framework reports into comparable quality signals.",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.34.5",
@@ -24,9 +25,11 @@
     "evidence:capture": "node scripts/capture-evidence.mjs",
     "scan:references": "node scripts/reference-scan.mjs",
     "scan:secrets": "node scripts/secret-scan.mjs",
+    "scan:public": "node scripts/public-release-scan.mjs",
     "demo:start": "node scripts/demo-runner.mjs start",
     "demo:stop": "node scripts/demo-runner.mjs stop",
-    "demo:status": "node scripts/demo-runner.mjs status"
+    "demo:status": "node scripts/demo-runner.mjs status",
+    "demo:reset": "node scripts/demo-runner.mjs reset"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

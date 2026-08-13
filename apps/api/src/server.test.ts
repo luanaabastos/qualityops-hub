@@ -78,7 +78,22 @@ integrationDescribe('API and authenticated report ingestion', () => {
     const readiness = await app.inject({ method: 'GET', url: '/api/readiness' });
     expect(health.statusCode).toBe(200);
     expect(readiness.statusCode).toBe(200);
-    expect(readiness.json()).toMatchObject({ status: 'ready', database: 'ready' });
+    expect(readiness.json()).toMatchObject({
+      status: 'ready',
+      api: 'ready',
+      database: 'ready',
+      objectStorage: 'not-configured',
+      backgroundJobs: 'disabled'
+    });
+    expect(health.headers['x-content-type-options']).toBe('nosniff');
+    expect(health.headers['x-frame-options']).toBe('DENY');
+  });
+
+  it('allows only configured browser origins', async () => {
+    const allowed = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: 'http://localhost:5173' } });
+    const rejected = await app.inject({ method: 'GET', url: '/api/health', headers: { origin: 'https://untrusted.example' } });
+    expect(allowed.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(rejected.headers['access-control-allow-origin']).toBeUndefined();
   });
 
   it('rejects missing, invalid and revoked bearer tokens', async () => {

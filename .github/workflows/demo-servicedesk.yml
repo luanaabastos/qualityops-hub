@@ -1,10 +1,14 @@
 name: Demo report - ServiceDesk
 
+permissions:
+  contents: read
+
 on: workflow_dispatch
 
 jobs:
   playwright-report:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,3 +23,5 @@ jobs:
           node demo-runners/servicedesk/run.mjs SUCCESS artifacts/demo-runs/ci-servicedesk
       - uses: actions/upload-artifact@v4
         with: { name: servicedesk-playwright-json-v1, path: artifacts/demo-runs/ci-servicedesk/raw-report.json }
+      # This workflow intentionally validates and uploads the report only.
+      # Remote ingestion requires a separately deployed public API and is a later milestone.

@@ -1,88 +1,83 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { bufferText, git, historyBlobs, historyCommits, isTextPath, workingEntries } from './scan-common.mjs';
 
-const root = process.cwd();
-const textExtensions = new Set([
-  '.css', '.env', '.html', '.js', '.json', '.jsx', '.md', '.mjs', '.cjs',
-  '.ps1', '.sql', '.ts', '.tsx', '.txt', '.yaml', '.yml'
-]);
-const skippedDirectories = new Set([
-  '.git', '.pnpm', '.pnpm-store', '.cache', '.demo-logs', 'coverage', 'dist',
-  'node_modules', 'playwright-report', 'test-results'
-]);
-const skippedFiles = new Set(['scripts/reference-scan.mjs']);
-const rules = [
+const textRules = [
   { label: 'personal-windows-path', pattern: /[a-z]:\\users\\[^\\\s]+/i },
   { label: 'personal-posix-home', pattern: /\/(?:users|home)\/[^/\s]+/i },
-  { label: 'external-corporate-host', pattern: /(?:gitlab|jira|confluence|servicenow|amazonaws)\.(?:com|net)/i },
-  { label: 'placeholder-corporate-host', pattern: /(?:company\.com|corp\.example)/i },
-  { label: 'external-project-marker', pattern: /(?:realcompany|realtoken|notrealuser@company\.com)/i }
+  { label: 'private-ip-address', pattern: /\b(?:10\.(?:\d{1,3}\.){2}\d{1,3}|192\.168\.(?:\d{1,3}\.)\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.(?:\d{1,3}\.)\d{1,3})\b/ },
+  { label: 'internal-hostname', pattern: /\b[a-z0-9.-]+\.(?:corp|internal|intranet|lan)\b/i },
+  { label: 'private-gitlab-url', pattern: /https?:\/\/[^\s"']*gitlab[^\s"']*/i }
 ];
-const findings = [];
+const emailPattern = /\b[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
+const allowedEmailDomains = new Set(['example.com', 'example.test', 'users.noreply.github.com']);
+const allowedAuthorNames = new Set(['QualityOps Hub', 'QualityOps Bot']);
 
-function relative(file) {
-  return path.relative(root, file).replaceAll('\\', '/');
+function allowedEmailDomain(domain) {
+  return allowedEmailDomains.has(domain)
+    || domain.endsWith('.invalid')
+    || domain.endsWith('.test')
+    || domain.endsWith('.example')
+    || domain === 'qualityops.local';
 }
 
-function isTextFile(file) {
-  const extension = path.extname(file).toLowerCase();
-  return textExtensions.has(extension) || ['.gitignore', '.npmrc'].includes(path.basename(file));
-}
-
-function inspectText(label, text) {
-  for (const rule of rules) {
-    if (label.startsWith('artifacts/') && rule.label.startsWith('personal-')) continue;
+function inspectText(label, text, findings) {
+  for (const rule of textRules) {
     if (rule.pattern.test(text)) findings.push(`${label}: ${rule.label}`);
   }
-}
-
-function walk(directory) {
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && skippedDirectories.has(entry.name)) continue;
-    const file = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      walk(file);
-      continue;
+  if (!label.endsWith('pnpm-lock.yaml')) {
+    for (const match of text.matchAll(emailPattern)) {
+      if (!allowedEmailDomain(match[1].toLowerCase())) findings.push(`${label}: non-public-email`);
     }
-
-    const label = relative(file);
-    if (!isTextFile(file) || skippedFiles.has(label)) continue;
-    const content = fs.readFileSync(file);
-    if (content.includes(0)) continue;
-    inspectText(label, content.toString('utf8'));
   }
 }
 
-function git(args) {
-  return spawnSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    maxBuffer: 20 * 1024 * 1024
-  });
+export function scanReferences() {
+  const working = [];
+  const history = [];
+  const config = [];
+  for (const entry of workingEntries()) {
+    inspectText(`working-tree:${entry.label}`, entry.label, working);
+    if (isTextPath(entry.label)) {
+      const text = bufferText(entry.content);
+      if (text !== null) inspectText(`working-tree:${entry.label}`, text, working);
+    }
+  }
+  for (const entry of historyBlobs()) {
+    inspectText(`git-history:${entry.objectId.slice(0, 12)}:${entry.label}`, entry.label, history);
+    if (isTextPath(entry.label)) {
+      const text = bufferText(entry.content);
+      if (text !== null) inspectText(`git-history:${entry.objectId.slice(0, 12)}:${entry.label}`, text, history);
+    }
+  }
+  for (const commit of historyCommits()) {
+    const label = `git-history:${commit.sha.slice(0, 12)}`;
+    if (!allowedAuthorNames.has(commit.authorName)) history.push(`${label}: personal-author-name`);
+    const domain = commit.authorEmail.split('@')[1]?.toLowerCase();
+    if (!domain || !allowedEmailDomain(domain)) history.push(`${label}: non-public-author-email`);
+    inspectText(`${label}:message`, commit.message, history);
+  }
+  const localConfig = git(['config', '--local', '--list']);
+  if (localConfig.status === 0) inspectText('git-local-config', localConfig.stdout, config);
+  const remotes = git(['remote', '-v']);
+  if (remotes.stdout.trim()) config.push('git-local-config: remote-present');
+  return {
+    working: [...new Set(working)],
+    history: [...new Set(history)],
+    config: [...new Set(config)]
+  };
 }
 
-walk(root);
-
-const history = git([
-  'log', '--all', '--format=fuller', '-p', '--', '.',
-  ':(exclude)scripts/reference-scan.mjs',
-  ':(exclude)scripts/secret-scan.mjs'
-]);
-if (history.status === 0) inspectText('git-history', history.stdout);
-
-const localConfig = git(['config', '--local', '--list']);
-if (localConfig.status === 0) inspectText('git-local-config', localConfig.stdout);
-
-const remotes = git(['remote', '-v']);
-if (remotes.stdout.trim()) findings.push('git-local-config: remote-present');
-
-const uniqueFindings = [...new Set(findings)];
-console.log(`CORPORATE_REFERENCE_SCAN=${uniqueFindings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
-if (uniqueFindings.length > 0) {
-  console.log(uniqueFindings.join('\n'));
-  process.exit(1);
+function run() {
+  const result = scanReferences();
+  const findings = [...result.working, ...result.history, ...result.config];
+  console.log(`CORPORATE_REFERENCE_SCAN=${findings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
+  if (findings.length > 0) {
+    console.log(findings.join('\n'));
+    process.exitCode = 1;
+  }
 }
+
+if (path.resolve(process.argv[1] ?? '') === path.resolve(fileURLToPath(import.meta.url))) run();

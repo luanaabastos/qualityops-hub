@@ -14,6 +14,7 @@ import {
   fetchDemoRun,
   fetchExecution,
   fetchExecutions,
+  fetchReadiness,
   fetchProduct,
   fetchProducts
 } from './api';
@@ -21,6 +22,7 @@ import type {
   DashboardResponse,
   DemoRun,
   Execution,
+  PlatformReadiness,
   ProductSummary,
   RegressionDelta
 } from './types';
@@ -662,6 +664,53 @@ function HowItWorksPage() {
   );
 }
 
+function PlatformHealthPage() {
+  const [health, setHealth] = useState<PlatformReadiness | null>(null);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+
+  useEffect(() => {
+    const load = () => fetchReadiness()
+      .then((payload: PlatformReadiness) => {
+        setHealth(payload);
+        setApiUnavailable(false);
+      })
+      .catch(() => {
+        setHealth(null);
+        setApiUnavailable(true);
+      });
+    void load();
+    const interval = window.setInterval(load, 5_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const services = [
+    { name: 'API', state: apiUnavailable ? 'unavailable' : health?.api ?? 'checking', detail: 'Fastify HTTP API' },
+    { name: 'PostgreSQL', state: apiUnavailable ? 'unknown' : health?.database ?? 'checking', detail: 'Persistent execution history' },
+    { name: 'Object Storage', state: health?.objectStorage ?? 'not-configured', detail: 'Not used in this local milestone' },
+    { name: 'Demo runners', state: apiUnavailable ? 'unknown' : health?.backgroundJobs ?? 'checking', detail: 'Allow-listed local jobs' }
+  ];
+
+  return (
+    <>
+      <PageHeader eyebrow="Runtime visibility" title="Platform Health" description="Live status without optimistic fallbacks." />
+      {apiUnavailable ? <Feedback error>The API is unavailable. Dependent service states cannot be confirmed.</Feedback> : null}
+      {!apiUnavailable && !health ? <Feedback>Checking platform services…</Feedback> : null}
+      <section className="panel" aria-labelledby="platform-services-title">
+        <div className="section-header"><h2 id="platform-services-title">Services</h2><span>Refreshes every 5 seconds</span></div>
+        <div className="metrics-grid">
+          {services.map((service) => (
+            <div key={service.name}>
+              <span>{service.name}</span>
+              <strong><span className={`pill ${statusClass(service.state)}`}>{service.state.replaceAll('-', ' ')}</span></strong>
+              <small>{service.detail}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 function ComingSoonPage({ title }: { title: string }) {
   return (
     <>
@@ -746,7 +795,7 @@ function AppShell() {
       <Route path="/video-evidence" element={<ComingSoonPage title="Video Evidence" />} />
       <Route path="/documentation" element={<ComingSoonPage title="Documentation" />} />
       <Route path="/how-it-works" element={<HowItWorksPage />} />
-      <Route path="/platform-health" element={<ComingSoonPage title="Platform Health" />} />
+      <Route path="/platform-health" element={<PlatformHealthPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   ), []);

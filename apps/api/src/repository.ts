@@ -407,6 +407,10 @@ export class QualityRepository {
   }
 
   async clearAllForTests(): Promise<void> {
+    await this.resetDemoData();
+  }
+
+  async resetDemoData(): Promise<void> {
     await this.database.pool.query('TRUNCATE demo_runs, integration_tokens, test_case_results, test_suites, pipeline_metadata, test_executions CASCADE');
   }
 }

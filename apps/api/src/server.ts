@@ -26,7 +26,25 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   if (options.seed !== false) await seedDemoHistory(database, repository);
 
   const app = Fastify({ logger: false, bodyLimit: 10 * 1024 * 1024 });
-  await app.register(cors, { origin: true });
+  const allowedOrigins = new Set(
+    (process.env.QUALITYOPS_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  );
+  await app.register(cors, {
+    origin(origin, callback) {
+      callback(null, !origin || allowedOrigins.has(origin));
+    },
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['content-type', 'authorization']
+  });
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'no-referrer');
+    reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+  });
   const tokenService = new IntegrationTokenService(repository);
   const ingestionService = new ReportIngestionService(repository);
   const demoEnabled = options.demoEnabled ?? process.env.DEMO_PIPELINE_LAB_ENABLED === 'true';
@@ -37,7 +55,14 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   app.get('/api/readiness', async (_request, reply) => {
     const ready = await database.isReady();
     reply.code(ready ? 200 : 503);
-    return { status: ready ? 'ready' : 'not-ready', mode: 'postgresql', database: ready ? 'ready' : 'unavailable', backgroundJobs: demoEnabled ? 'ready' : 'disabled' };
+    return {
+      status: ready ? 'ready' : 'not-ready',
+      api: 'ready',
+      mode: 'postgresql',
+      database: ready ? 'ready' : 'unavailable',
+      objectStorage: 'not-configured',
+      backgroundJobs: demoEnabled ? 'ready' : 'disabled'
+    };
   });
 
   app.get('/api/dashboard', async () => repository.dashboard());
@@ -84,7 +109,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
         return reply.code(409).send({ error: error.message, existingExecutionId: error.existingExecutionId });
       }
       if (error instanceof ZodError) return reply.code(400).send({ error: 'Invalid report payload', issues: error.issues });
-      return reply.code(400).send({ error: error instanceof Error ? error.message : 'Report ingestion failed' });
+      return reply.code(400).send({ error: 'Report ingestion failed' });
     }
   });
 

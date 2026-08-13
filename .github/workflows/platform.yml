@@ -1,5 +1,8 @@
 name: Platform validation
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   pull_request:
@@ -7,6 +10,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -39,6 +43,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Scan references, history, paths and public assets
+        run: |
+          pnpm scan:references
+          pnpm scan:public
+      - name: Scan secrets
+        run: pnpm scan:secrets
       - run: pnpm exec playwright install --with-deps chromium
       - name: Start platform and run browser acceptance
         run: |

@@ -49,4 +49,15 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await expect(page.getByText(/MOBILE_HARNESS_DEMO startup was intentionally interrupted/)).toBeVisible();
     await expect(page.getByText(/Android device was used/)).toBeVisible();
   });
+
+  test('Platform Health reports live dependencies without a false object-storage status', async ({ page }) => {
+    await page.goto('/platform-health');
+    const services = page.locator('section.panel');
+    await expect(services).toContainText('API');
+    await expect(services).toContainText('PostgreSQL');
+    await expect(services).toContainText('Object Storage');
+    await expect(services).toContainText('Demo runners');
+    await expect(services.getByText('ready', { exact: true })).toHaveCount(3);
+    await expect(services.getByText('not configured', { exact: true })).toBeVisible();
+  });
 });

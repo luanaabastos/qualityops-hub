@@ -333,7 +333,13 @@ nav {
 .pill.failed,
 .pill.infrastructure-error { color: var(--danger); background: rgba(252, 165, 165, 0.13); }
 .pill.not-executed,
-.pill.configuration-pending { color: var(--info); background: rgba(147, 197, 253, 0.13); }
+.pill.configuration-pending,
+.pill.not-configured,
+.pill.disabled,
+.pill.checking,
+.pill.unknown { color: var(--info); background: rgba(147, 197, 253, 0.13); }
+.pill.ready { color: var(--success); background: rgba(110, 231, 183, 0.13); }
+.pill.unavailable { color: var(--danger); background: rgba(252, 165, 165, 0.13); }
 
 .product-card dl {
   display: grid;

@@ -80,3 +80,11 @@ export type DemoRun = {
   executionId: string | null;
   error: string | null;
 };
+
+export type PlatformReadiness = {
+  status: 'ready' | 'not-ready';
+  api: 'ready';
+  database: 'ready' | 'unavailable';
+  objectStorage: 'not-configured';
+  backgroundJobs: 'ready' | 'disabled';
+};

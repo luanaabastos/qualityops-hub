@@ -1,10 +1,14 @@
 name: Demo report - PocketWallet harness
 
+permissions:
+  contents: read
+
 on: workflow_dispatch
 
 jobs:
   mobile-harness-report:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,3 +18,5 @@ jobs:
       - run: node demo-runners/pocketwallet/harness.mjs SUCCESS artifacts/demo-runs/ci-pocketwallet
       - uses: actions/upload-artifact@v4
         with: { name: pocketwallet-mobile-e2e-json-v1, path: artifacts/demo-runs/ci-pocketwallet/raw-report.json }
+      # This workflow intentionally validates and uploads the report only.
+      # Remote ingestion requires a separately deployed public API and is a later milestone.

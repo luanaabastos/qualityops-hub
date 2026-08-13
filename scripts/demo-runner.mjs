@@ -46,6 +46,14 @@ function startProcess(args, cwd, label, env = {}) {
   return child;
 }
 
+function removeProjectRuntimeArtifacts() {
+  const demoArtifacts = path.resolve(root, 'artifacts', 'demo-runs');
+  const expectedArtifacts = `${path.resolve(root)}${path.sep}artifacts${path.sep}demo-runs`;
+  if (demoArtifacts !== expectedArtifacts) throw new Error('Unsafe demo artifact path');
+  fs.rmSync(demoArtifacts, { recursive: true, force: true });
+  fs.rmSync(logDirectory, { recursive: true, force: true });
+}
+
 async function waitFor(url, timeoutMs = 45_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -58,13 +66,13 @@ async function waitFor(url, timeoutMs = 45_000) {
   return false;
 }
 
-if (action === 'start') {
+async function startDemo() {
   const existing = readState();
   if (existing.started && isRunning(existing.webPid) && isRunning(existing.apiPid)) {
     console.log('Demo already running');
     console.log('Frontend: http://localhost:5173');
     console.log('API: http://localhost:3001');
-    process.exit(0);
+    return;
   }
   killPid(existing.webPid);
   killPid(existing.apiPid);
@@ -85,7 +93,7 @@ if (action === 'start') {
     killPid(web.pid);
     killPid(api.pid);
     console.error('Demo services did not become ready. Inspect .demo-logs for details.');
-    process.exit(1);
+    throw new Error('Demo startup failed');
   }
   writeState({ started: true, webPid: web.pid, apiPid: api.pid, startedAt: new Date().toISOString(), stoppedAt: null,
     frontendUrl: 'http://localhost:5173', apiUrl: 'http://localhost:3001', healthUrl: 'http://localhost:3001/api/health', readinessUrl: 'http://localhost:3001/api/readiness' });
@@ -93,6 +101,10 @@ if (action === 'start') {
   console.log('Frontend: http://localhost:5173');
   console.log('API: http://localhost:3001');
   console.log('PostgreSQL: ready');
+}
+
+if (action === 'start') {
+  await startDemo();
   process.exit(0);
 }
 
@@ -103,6 +115,36 @@ if (action === 'stop') {
   docker(['stop', 'postgres'], 'ignore');
   writeState({ ...state, started: false, webPid: null, apiPid: null, stoppedAt: new Date().toISOString() });
   console.log('Demo stopped');
+  process.exit(0);
+}
+
+if (action === 'reset') {
+  const confirmation = '--confirm-local-demo-reset';
+  if (!process.argv.includes(confirmation)) {
+    console.error(`Refusing destructive reset without ${confirmation}.`);
+    process.exit(2);
+  }
+  const state = readState();
+  killPid(state.webPid);
+  killPid(state.apiPid);
+  writeState({ ...state, started: false, webPid: null, apiPid: null, stoppedAt: new Date().toISOString() });
+  const database = docker(['up', '-d', '--wait', 'postgres']);
+  if (database.status !== 0) process.exit(database.status ?? 1);
+  removeProjectRuntimeArtifacts();
+  const reset = spawnSync(process.execPath, [
+    path.join(root, 'apps', 'api', 'node_modules', 'tsx', 'dist', 'cli.mjs'),
+    path.join(root, 'apps', 'api', 'src', 'reset-demo.ts'),
+    confirmation
+  ], {
+    cwd: root,
+    env: { ...process.env, DATABASE_URL: databaseUrl },
+    stdio: 'inherit',
+    windowsHide: true,
+    timeout: 60_000
+  });
+  if (reset.status !== 0) process.exit(reset.status ?? 1);
+  await startDemo();
+  console.log('Demo reset to predictable seeded local state and restarted.');
   process.exit(0);
 }
 
