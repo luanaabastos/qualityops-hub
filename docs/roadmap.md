@@ -15,12 +15,13 @@ No milestone below carries a promised date.
 - Execution Details, freshness, origin badges, and Regression Delta
 - Local evidence capture and public-release safety scans
 - MIT License and sanitized public Git identity
+- Public GitHub repository and protected validation workflow
+- Hosted single-service runtime contract, idempotent bootstrap, and production smoke suite
 - `LICENSE=MIT`
 
 ## Next
 
-- Human-authorized GitHub publication
-- Hosted demo with a separately deployed public ingestion endpoint
+- Human-authorized Render provisioning and hosted-demo deployment
 - Automation Coverage from a defined source of truth
 - Flaky Test Radar using longer execution history
 - Video evidence with explicit retention rules

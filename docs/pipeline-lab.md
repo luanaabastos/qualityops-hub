@@ -1,6 +1,6 @@
 # Pipeline Lab
 
-Pipeline Lab is a local/demo-only feature. `pnpm demo:start` enables it for the local API.
+Pipeline Lab is a bounded demo feature. `pnpm demo:start` enables it locally; the hosted feature flag may enable the same fixed scenarios after a separately authorized deployment.
 
 ## Walkthrough
 
@@ -15,9 +15,9 @@ Pipeline Lab is a local/demo-only feature. `pnpm demo:start` enables it for the 
 9. Open the persisted execution.
 10. Return to Overview and inspect the product's Regression Delta.
 
-The server validates three enums and maps them to fixed runner paths. Client input never becomes a command, executable, argument, URL, or path. Child processes execute without a shell.
+The server validates a strict three-enum object and maps it to fixed runner paths. Client input never becomes a command, executable, argument, URL, environment value, or path. Child processes execute without a shell, receive an environment allowlist, have a timeout, and are bounded by per-client cooldown/rate and a small concurrency limit.
 
-Each job writes a raw report, normalized report, metadata, and sanitized log below its generated run ID in the ignored `artifacts/demo-runs` directory. No raw integration token is written to those files.
+Each job writes a raw report, normalized report, metadata, and sanitized log below its generated run ID in the ignored `artifacts/demo-runs` directory. Those files are ephemeral; normalized history lives in PostgreSQL. No raw integration or system token is written to those files.
 
 ShopSphere and ServiceDesk execute real browser tests against fictional, clean-room HTML targets. PocketWallet is a deterministic Node `MOBILE_HARNESS_DEMO` and must never be described as a real Android or Appium run.
 

@@ -87,9 +87,9 @@ All workflows use read-only repository permissions and bounded timeouts. They in
 
 ## Known limitations
 
-- Local-only API and demo; no hosted endpoint exists.
-- In-process jobs have no distributed queue or crash recovery.
-- No application or distributed rate limiter.
+- Hosted-runtime configuration is prepared, but no hosted endpoint or provider resource exists.
+- In-process jobs have no distributed queue or cross-instance recovery.
+- Pipeline Lab has a bounded in-process request limiter; no distributed rate limiter is implemented.
 - No user accounts, roles, tenant boundaries, or audit-log service.
 - Object storage is not configured; raw reports remain ignored local artifacts.
 - Integration tokens require explicit rotation/revocation and have no automatic expiry.

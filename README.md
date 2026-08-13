@@ -6,6 +6,12 @@ License: [MIT](LICENSE)
 
 `LICENSE=MIT`
 
+## Live Demo
+
+`Live demo: deployment pending`
+
+The repository is technically prepared for an explicitly approved hosted demo, but no hosting resource or public URL has been created. The planned single-service architecture, environment contract, operational limits, and provider caveats are documented in [the hosting guide](docs/hosting.md).
+
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
 ## Why this project exists
@@ -26,7 +32,7 @@ CI executes tests. QualityOps Hub receives the resulting report, validates it, n
 - Separates functional failures from infrastructure errors.
 - Persists executions, suites, cases, pipeline metadata, and deltas in PostgreSQL.
 - Detects identical replays and conflicting content for the same pipeline identity.
-- Runs safe local demonstrations through an allow-listed Pipeline Lab.
+- Runs safe local or hosted demonstrations through an allow-listed Pipeline Lab.
 - Shows overview, history, execution details, freshness, and Regression Delta views.
 
 ## Architecture
@@ -99,15 +105,15 @@ Infrastructure errors are not counted as failed assertions. When a runner cannot
 
 - Raw integration tokens are displayed once; PostgreSQL stores a salted scrypt hash.
 - Authentication uses product-scoped tokens and timing-safe comparison.
-- CORS defaults to the two local demo origins and can be configured explicitly.
+- Production uses same-origin frontend/API requests; local CORS defaults to the two development origins.
 - Responses include defensive content, frame, referrer, and permissions headers.
 - Report bodies are validated with Zod and limited to 10 MiB.
 - SQL calls are parameterized and ingestion writes use transactions.
-- Pipeline Lab is feature-flagged, allow-listed, and runs child processes without a shell.
+- Pipeline Lab is feature-flagged, strictly allow-listed, rate/cooldown/capacity limited, and runs timed child processes without a shell.
 - Stack traces and file paths are sanitized before persistence.
 - Raw reports stay in ignored local artifacts and are not exposed by the API.
 
-This is not presented as production-ready. The local process has no distributed queue, external object storage, distributed rate limiting, user accounts, or hosted secret management. See [SECURITY.md](SECURITY.md) and [known risks](docs/security.md).
+This is a bounded portfolio demo, not a multi-tenant production service. It has no distributed queue, external object storage, distributed rate limiting, user accounts, or analytics. See [SECURITY.md](SECURITY.md), [known risks](docs/security.md), and [hosted-demo limitations](docs/hosting.md).
 
 ## Local demo
 
@@ -155,6 +161,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm test:e2e
+pnpm test:production
 pnpm scan:references
 pnpm scan:secrets
 pnpm scan:public
@@ -186,13 +193,13 @@ Unit tests cover shared quality semantics and adapters. PostgreSQL integration t
 
 ## Roadmap
 
-Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). A hosted demo and remote report ingestion require a separately deployed public API; the prepared workflows do not pretend that localhost is remotely reachable.
+Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). Hosting configuration is prepared, while provider provisioning, secrets, cost review, and deployment remain separate human-authorized actions.
 
 ## Project status
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real browser demo runners, and evidence flow are implemented. Public publication remains a separate human-authorized action.
+The local application, database-backed ingestion, real browser demo runners, evidence flow, and hosted-runtime contract are implemented. Creating hosting infrastructure remains a separate human-authorized action.
 
 ## License
 

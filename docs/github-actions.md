@@ -23,7 +23,7 @@ The browser acceptance suite triggers the fixed local demo runners. Nothing is p
 
 The ShopSphere, ServiceDesk, and PocketWallet workflows execute their runner and upload the resulting JSON as a workflow artifact. They intentionally stop there.
 
-A GitHub-hosted runner cannot reach a developer's `localhost`. Remote ingestion will only be added after a public QualityOps API is separately deployed. At that point, an authorized design may use a public `QUALITYOPS_URL` and a product-scoped `QUALITYOPS_INGEST_TOKEN` stored in the repository's secret manager. No such secret or endpoint exists in the current files.
+A GitHub-hosted runner cannot reach a developer's `localhost`. Remote ingestion remains disabled until the prepared hosted application is separately provisioned and deployed. A future authorized design may use a public `QUALITYOPS_URL` and a product-scoped `QUALITYOPS_INGEST_TOKEN` stored in the repository's secret manager. No such secret or endpoint is configured now.
 
 ## Publication boundary
 

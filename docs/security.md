@@ -12,7 +12,7 @@ Integration tokens are product-scoped opaque values. The database stores a rando
 
 - Report bodies are limited to 10 MiB.
 - Route parameters and request bodies are validated with Zod.
-- CORS defaults to `localhost:5173` and `127.0.0.1:5173`; additional origins require explicit configuration.
+- Production uses same-origin web/API requests and registers no CORS policy by default; development allows only its two explicit local origins.
 - Responses set `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy`.
 - Unexpected ingestion failures return a generic message instead of an internal diagnostic.
 - There is no file-upload endpoint; the API accepts a validated JSON body.
