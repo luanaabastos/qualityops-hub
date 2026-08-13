@@ -1,6 +1,6 @@
 import type { DemoMode, ProductKey, SuiteType } from '@qualityops-hub/shared';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
 async function getJson(path: string) {
   const response = await fetch(`${API_BASE}${path}`);

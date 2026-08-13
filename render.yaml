@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: qualityops-hub
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    numInstances: 1
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: node scripts/start-production.mjs
+    healthCheckPath: /api/readiness
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_VERSION
+        value: 20.20.1
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: qualityops-hub-db
+          property: connectionString
+      - key: DATABASE_SSL_MODE
+        value: disable
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: DEMO_PIPELINE_LAB_ENABLED
+        value: "true"
+      - key: DEMO_SYSTEM_TOKEN
+        sync: false
+      - key: DEMO_MAX_CONCURRENT_RUNS
+        value: "2"
+      - key: DEMO_RATE_LIMIT_MAX
+        value: "4"
+      - key: DEMO_RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: DEMO_RUN_COOLDOWN_MS
+        value: "10000"
+      - key: DEMO_RUN_TIMEOUT_MS
+        value: "120000"
+
+databases:
+  - name: qualityops-hub-db
+    plan: free
+    region: virginia
+    postgresMajorVersion: "16"
+    databaseName: qualityops_hub
+    user: qualityops_hub
+    ipAllowList: []

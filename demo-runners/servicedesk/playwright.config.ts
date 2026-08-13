@@ -1,8 +1,12 @@
+import path from 'node:path';
 import { defineConfig } from '@playwright/test';
+
+const artifactDirectory = process.env.DEMO_ARTIFACT_DIR ?? path.resolve('artifacts', 'demo-runs', 'manual-servicedesk');
 
 export default defineConfig({
   testDir: '.',
   testMatch: 'servicedesk.spec.ts',
+  outputDir: path.join(artifactDirectory, 'playwright-output'),
   timeout: 20_000,
   fullyParallel: false,
   retries: 0,

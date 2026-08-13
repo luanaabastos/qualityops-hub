@@ -7,11 +7,34 @@ const { Pool } = pg;
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../', import.meta.url)));
 const defaultDatabaseUrl = 'postgresql://qualityops:qualityops@localhost:5432/qualityops_dev';
 
+function connectionString(value?: string): string {
+  const resolved = value ?? process.env.DATABASE_URL;
+  if (!resolved && process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_URL is required in production.');
+  }
+  return resolved ?? defaultDatabaseUrl;
+}
+
+function sslOptions(value: string): pg.PoolConfig['ssl'] {
+  const configured = process.env.DATABASE_SSL_MODE;
+  const fromUrl = new URL(value).searchParams.get('sslmode');
+  const mode = configured ?? fromUrl ?? 'disable';
+  if (mode === 'disable') return undefined;
+  return { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' };
+}
+
 export class Database {
   readonly pool: pg.Pool;
 
-  constructor(connectionString = process.env.DATABASE_URL ?? defaultDatabaseUrl) {
-    this.pool = new Pool({ connectionString, max: 8, connectionTimeoutMillis: 5_000 });
+  constructor(value?: string) {
+    const resolved = connectionString(value);
+    this.pool = new Pool({
+      connectionString: resolved,
+      max: Number(process.env.DATABASE_POOL_MAX ?? 8),
+      connectionTimeoutMillis: 5_000,
+      idleTimeoutMillis: 30_000,
+      ssl: sslOptions(resolved)
+    });
   }
 
   async initialize(): Promise<void> {

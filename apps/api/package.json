@@ -10,10 +10,13 @@
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
+    "migrate:deploy": "node dist/migrate.js",
+    "bootstrap:demo": "node dist/bootstrap.js",
     "start": "node dist/server.js"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.0",
+    "@fastify/static": "10.1.2",
     "@qualityops-hub/shared": "workspace:*",
     "fastify": "^5.1.0",
     "pg": "8.23.0",

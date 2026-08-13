@@ -541,8 +541,8 @@ function PipelineLabPage() {
   const currentIndex = run ? progress.indexOf(run.state) : -1;
   return (
     <>
-      <PageHeader eyebrow="Local demo only" title="Pipeline Lab" description="Run a fixed, allow-listed fictional pipeline through the same authenticated ingestion API used by external CI." />
-      <div className="notice warning-notice"><strong>Pipeline Lab is a local/demo-only feature.</strong> It accepts no commands or filesystem paths.</div>
+      <PageHeader eyebrow="Bounded demo runner" title="Pipeline Lab" description="Run a fixed, allow-listed fictional pipeline through the same authenticated ingestion API used by external CI." />
+      <div className="notice warning-notice"><strong>Pipeline Lab runs synthetic portfolio scenarios only.</strong> It accepts no commands, URLs, environment values, or filesystem paths.</div>
       <section className="panel pipeline-layout" aria-labelledby="pipeline-form-title">
         <form onSubmit={submit} className="pipeline-form">
           <h2 id="pipeline-form-title">Run a demo pipeline</h2>

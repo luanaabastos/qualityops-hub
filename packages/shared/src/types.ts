@@ -113,7 +113,7 @@ export const demoRunRequestSchema = z.object({
   product: productKeySchema,
   suite: suiteTypeSchema,
   mode: demoModeSchema
-});
+}).strict();
 
 export const mobileReportSchema = z.object({
   version: z.literal('mobile-e2e-json-v1'),

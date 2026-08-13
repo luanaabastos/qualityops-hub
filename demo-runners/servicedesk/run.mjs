@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const allowedModes = new Set(['SUCCESS', 'FUNCTIONAL_FAILURE', 'INFRASTRUCTURE_FAILURE']);
 const mode = process.argv[2];
-const output = process.argv[3];
-if (!allowedModes.has(mode) || !output) throw new Error('Invalid ServiceDesk runner arguments');
+const output = process.argv[3] ? path.resolve(process.argv[3]) : '';
+const artifactsRoot = path.resolve(root, 'artifacts', 'demo-runs');
+if (!allowedModes.has(mode) || !output.startsWith(`${artifactsRoot}${path.sep}`)) throw new Error('Invalid ServiceDesk runner arguments');
 await fs.mkdir(output, { recursive: true });
 
 if (mode === 'INFRASTRUCTURE_FAILURE') {

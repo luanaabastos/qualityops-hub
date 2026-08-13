@@ -8,16 +8,6 @@
     <section aria-label="Catalog"><input id="search" aria-label="Search"><button id="search-button">Search</button><p id="search-result"></p><button id="add-cart">Add fictional item</button><output id="cart-count">0</output></section>
     <button id="checkout">Complete fictional checkout</button><p id="checkout-status"></p>
   </main>
-  <script>
-    let count = 0;
-    document.querySelector('#login').addEventListener('click', () => {
-      document.querySelector('#login-status').textContent = document.querySelector('#email').value ? 'Signed in' : 'Email is required';
-    });
-    document.querySelector('#search-button').addEventListener('click', () => {
-      document.querySelector('#search-result').textContent = `Result: ${document.querySelector('#search').value}`;
-    });
-    document.querySelector('#add-cart').addEventListener('click', () => { count += 1; document.querySelector('#cart-count').textContent = String(count); });
-    document.querySelector('#checkout').addEventListener('click', () => { document.querySelector('#checkout-status').textContent = 'Checkout completed'; });
-  </script>
+  <script src="/demo-targets/shopsphere.js"></script>
 </body>
 </html>

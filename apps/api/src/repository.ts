@@ -406,6 +406,15 @@ export class QualityRepository {
     return runs.filter((run): run is Record<string, unknown> => run !== null);
   }
 
+  async failInterruptedDemoRuns(): Promise<number> {
+    const result = await this.database.pool.query(
+      `UPDATE demo_runs SET state='FAILED', progress_message='Interrupted by application restart',
+       error_message='The previous worker stopped before completion.', finished_at=NOW()
+       WHERE state IN ('QUEUED','RUNNING','PROCESSING_REPORT')`
+    );
+    return result.rowCount ?? 0;
+  }
+
   async clearAllForTests(): Promise<void> {
     await this.resetDemoData();
   }

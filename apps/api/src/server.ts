@@ -1,14 +1,19 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import { ZodError } from 'zod';
 import { demoRunRequestSchema, productKeySchema, reportIngestionSchema } from '@qualityops-hub/shared';
-import { Database } from './database.js';
-import { DemoJobService } from './demo-jobs.js';
+import { bootstrapDemo } from './bootstrap.js';
+import { loadRuntimeConfig, type RuntimeConfig } from './config.js';
+import { Database, repositoryRoot } from './database.js';
+import { DemoJobService, type DemoJobController } from './demo-jobs.js';
+import { DemoCapacityError, DemoRequestLimiter } from './demo-protection.js';
 import { ReportIngestionService } from './ingestion-service.js';
 import { IdempotencyConflictError, QualityRepository } from './repository.js';
-import { seedDemoHistory } from './seed.js';
 import { bearerToken, IntegrationTokenService } from './token-service.js';
 
 type BuildOptions = {
@@ -16,40 +21,88 @@ type BuildOptions = {
   demoEnabled?: boolean;
   seed?: boolean;
   apiBaseUrl?: string;
+  serveWeb?: boolean;
+  demoJobs?: DemoJobController;
+  config?: Partial<RuntimeConfig>;
 };
 
+function secureEqual(candidate: string, expected: string): boolean {
+  const candidateHash = createHash('sha256').update(candidate).digest();
+  const expectedHash = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(candidateHash, expectedHash);
+}
+
 export async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
+  const config = loadRuntimeConfig(process.env, {
+    ...options.config,
+    demoEnabled: options.demoEnabled ?? options.config?.demoEnabled,
+    apiBaseUrl: options.apiBaseUrl ?? options.config?.apiBaseUrl,
+    serveWeb: options.serveWeb ?? options.config?.serveWeb
+  });
   const database = options.database ?? new Database();
   await database.initialize();
+  await bootstrapDemo(database, options.seed !== false);
   const repository = new QualityRepository(database);
-  await repository.seedProducts();
-  if (options.seed !== false) await seedDemoHistory(database, repository);
 
-  const app = Fastify({ logger: false, bodyLimit: 10 * 1024 * 1024 });
-  const allowedOrigins = new Set(
-    (process.env.QUALITYOPS_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean)
-  );
-  await app.register(cors, {
-    origin(origin, callback) {
-      callback(null, !origin || allowedOrigins.has(origin));
-    },
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['content-type', 'authorization']
+  const app = Fastify({
+    logger: config.production ? {
+      level: process.env.LOG_LEVEL ?? 'info',
+      redact: {
+        paths: ['req.headers.authorization', 'request.headers.authorization', 'headers.authorization'],
+        censor: '[REDACTED]'
+      }
+    } : false,
+    bodyLimit: 10 * 1024 * 1024,
+    trustProxy: config.production ? 1 : false
   });
-  app.addHook('onSend', async (_request, reply) => {
+  if (config.allowedOrigins.length > 0) {
+    const allowedOrigins = new Set(config.allowedOrigins);
+    await app.register(cors, {
+      origin(origin, callback) {
+        callback(null, !origin || allowedOrigins.has(origin));
+      },
+      methods: ['GET', 'POST'],
+      allowedHeaders: ['content-type', 'authorization']
+    });
+  }
+  app.addHook('onSend', async (request, reply) => {
     reply.header('x-content-type-options', 'nosniff');
     reply.header('x-frame-options', 'DENY');
     reply.header('referrer-policy', 'no-referrer');
     reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+    reply.header('content-security-policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+    if (request.url === '/' || request.url.endsWith('/index.html')) reply.header('cache-control', 'no-store');
   });
+  app.addHook('onResponse', async (request, reply) => {
+    const params = request.params as Record<string, string> | undefined;
+    app.log.info({
+      event: 'http_response',
+      requestId: request.id,
+      method: request.method,
+      route: request.routeOptions.url,
+      statusCode: reply.statusCode,
+      durationMs: Math.round(reply.elapsedTime),
+      runId: params?.runId,
+      product: params?.productKey ?? params?.key
+    });
+  });
+
   const tokenService = new IntegrationTokenService(repository);
   const ingestionService = new ReportIngestionService(repository);
-  const demoEnabled = options.demoEnabled ?? process.env.DEMO_PIPELINE_LAB_ENABLED === 'true';
-  const demoJobs = new DemoJobService(repository, tokenService, options.apiBaseUrl ?? 'http://127.0.0.1:3001');
-  if (demoEnabled) await demoJobs.initialize();
+  const demoJobs = options.demoJobs ?? new DemoJobService(repository, {
+    apiBaseUrl: config.apiBaseUrl,
+    targetUrl: config.publicAppUrl,
+    systemToken: config.demoSystemToken,
+    maxConcurrentRuns: config.demoMaxConcurrentRuns,
+    timeoutMs: config.demoRunTimeoutMs,
+    log: (record) => app.log.info(record)
+  });
+  const requestLimiter = new DemoRequestLimiter(
+    config.demoRateLimitMax,
+    config.demoRateLimitWindowMs,
+    config.demoRunCooldownMs
+  );
+  if (config.demoEnabled) await demoJobs.initialize();
 
   app.get('/api/health', async () => ({ status: 'ok', service: 'qualityops-api', timestamp: new Date().toISOString() }));
   app.get('/api/readiness', async (_request, reply) => {
@@ -61,7 +114,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       mode: 'postgresql',
       database: ready ? 'ready' : 'unavailable',
       objectStorage: 'not-configured',
-      backgroundJobs: demoEnabled ? 'ready' : 'disabled'
+      backgroundJobs: config.demoEnabled ? 'ready' : 'disabled'
     };
   });
 
@@ -87,12 +140,15 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   app.post('/api/products/:productKey/test-reports', async (request, reply) => {
     const product = productKeySchema.safeParse((request.params as { productKey: string }).productKey);
     if (!product.success) return reply.code(404).send({ error: 'Product not found' });
-    const rawToken = bearerToken(request.headers.authorization);
-    if (!rawToken || !(await tokenService.authenticate(rawToken, product.data))) {
-      return reply.code(401).send({ error: 'Unauthorized' });
-    }
     try {
       const body = reportIngestionSchema.parse(request.body);
+      const rawToken = bearerToken(request.headers.authorization);
+      const isDemoSystem = rawToken !== null
+        && body.source === 'DEMO_PIPELINE'
+        && secureEqual(rawToken, config.demoSystemToken);
+      if (!rawToken || (!isDemoSystem && !(await tokenService.authenticate(rawToken, product.data)))) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+      }
       const artifactPath = body.source === 'DEMO_PIPELINE' && body.pipelineId && /^[0-9a-f-]{36}$/.test(body.pipelineId)
         ? path.posix.join('artifacts', 'demo-runs', body.pipelineId)
         : null;
@@ -113,11 +169,24 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     }
   });
 
-  if (demoEnabled) {
-    app.post('/api/demo/runs', async (request, reply) => {
+  if (config.demoEnabled) {
+    app.post('/api/demo/runs', { bodyLimit: 4 * 1024 }, async (request, reply) => {
       const parsed = demoRunRequestSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: 'Invalid demo run request', issues: parsed.error.issues });
-      return reply.code(202).send({ run: await demoJobs.enqueue(parsed.data) });
+      const rate = requestLimiter.check(request.ip);
+      if (!rate.allowed) {
+        reply.header('retry-after', String(Math.max(1, Math.ceil(rate.retryAfterMs / 1_000))));
+        return reply.code(429).send({ error: 'Demo request limit reached. Try again shortly.' });
+      }
+      try {
+        return reply.code(202).send({ run: await demoJobs.enqueue(parsed.data) });
+      } catch (error) {
+        if (error instanceof DemoCapacityError) {
+          reply.header('retry-after', '5');
+          return reply.code(429).send({ error: error.message });
+        }
+        throw error;
+      }
     });
     app.get('/api/demo/runs', async () => ({ runs: await repository.listDemoRuns() }));
     app.get('/api/demo/runs/:runId', async (request, reply) => {
@@ -126,6 +195,30 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       return { run };
     });
   }
+
+  if (config.serveWeb) {
+    const webRoot = path.join(repositoryRoot, 'apps', 'web', 'dist');
+    await fs.access(path.join(webRoot, 'index.html'));
+    await app.register(fastifyStatic, { root: webRoot, index: ['index.html'] });
+    app.setNotFoundHandler(async (request, reply) => {
+      if (request.method === 'GET' && !request.url.startsWith('/api/') && request.headers.accept?.includes('text/html')) {
+        return reply.type('text/html').sendFile('index.html');
+      }
+      return reply.code(404).send({ error: 'Not found' });
+    });
+  }
+
+  app.setErrorHandler((error, request, reply) => {
+    const candidateStatus = typeof error === 'object' && error !== null && 'statusCode' in error
+      ? Number(error.statusCode)
+      : 500;
+    const statusCode = candidateStatus >= 400 && candidateStatus < 500 ? candidateStatus : 500;
+    if (statusCode >= 500) {
+      app.log.error({ err: error, requestId: request.id }, 'request_failed');
+    }
+    const message = statusCode === 413 ? 'Payload too large' : statusCode >= 500 ? 'Internal server error' : 'Invalid request';
+    void reply.code(statusCode).send({ error: message, requestId: request.id });
+  });
 
   app.addHook('onClose', async () => database.close());
   return app;
@@ -136,12 +229,23 @@ const isMainModule = process.argv[1]
   : false;
 
 if (isMainModule) {
-  const app = await buildApp();
   try {
-    const address = await app.listen({ port: 3001, host: '0.0.0.0' });
-    console.log(`API listening on ${address}`);
-  } catch (error) {
-    console.error(error);
+    const config = loadRuntimeConfig();
+    const app = await buildApp({ config });
+    const address = await app.listen({ port: config.port, host: config.host });
+    app.log.info({ event: 'server_started', address, port: config.port, host: config.host });
+    if (!config.production) console.log(`API listening on ${address}`);
+    let closing = false;
+    const shutdown = async (signal: string) => {
+      if (closing) return;
+      closing = true;
+      app.log.info({ event: 'server_shutdown', signal });
+      await app.close();
+    };
+    process.once('SIGINT', () => void shutdown('SIGINT'));
+    process.once('SIGTERM', () => void shutdown('SIGTERM'));
+  } catch {
+    console.error(JSON.stringify({ event: 'server_start_failed', error: 'Application startup failed.' }));
     process.exit(1);
   }
 }
