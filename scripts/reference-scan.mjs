@@ -13,6 +13,15 @@ const textRules = [
 ];
 const emailPattern = /\b[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
 const allowedEmailDomains = new Set(['example.com', 'example.test', 'users.noreply.github.com']);
+const authorizedRemoteUrls = new Set([
+  'https://github.com/luanaabastos/qualityops-hub',
+  'git@github.com:luanaabastos/qualityops-hub',
+  'ssh://git@github.com/luanaabastos/qualityops-hub'
+]);
+
+function normalizedRemoteUrl(value) {
+  return value.trim().replace(/\/$/, '').replace(/\.git$/i, '');
+}
 
 function allowedEmailDomain(domain) {
   return allowedEmailDomains.has(domain)
@@ -61,8 +70,18 @@ export function scanReferences() {
   }
   const localConfig = git(['config', '--local', '--list']);
   if (localConfig.status === 0) inspectText('git-local-config', localConfig.stdout, config);
-  const remotes = git(['remote', '-v']);
-  if (remotes.stdout.trim()) config.push('git-local-config: remote-present');
+  const remotes = git(['remote']);
+  if (remotes.status === 0) {
+    const names = remotes.stdout.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+    if (names.some((name) => name !== 'origin')) config.push('git-local-config: unexpected-remote');
+    if (names.includes('origin')) {
+      const originUrls = git(['remote', 'get-url', '--all', 'origin']);
+      const urls = originUrls.stdout.split(/\r?\n/).map(normalizedRemoteUrl).filter(Boolean);
+      if (originUrls.status !== 0 || urls.length === 0 || urls.some((url) => !authorizedRemoteUrls.has(url))) {
+        config.push('git-local-config: unauthorized-origin');
+      }
+    }
+  }
   return {
     working: [...new Set(working)],
     history: [...new Set(history)],
