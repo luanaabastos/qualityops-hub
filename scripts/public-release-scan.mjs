@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { root, bufferText, workingEntries } from './scan-common.mjs';
+import { root, bufferText, historyCommits, publicGitIdentity, workingEntries } from './scan-common.mjs';
 import { scanReferences } from './reference-scan.mjs';
 import { scanSecrets } from './secret-scan.mjs';
 
@@ -55,18 +55,34 @@ function scanAssets() {
   return { findings: [...new Set(findings)], assets };
 }
 
+function scanPublicGitIdentity() {
+  const findings = [];
+  for (const commit of historyCommits()) {
+    const label = `git-history:${commit.sha.slice(0, 12)}`;
+    if (commit.authorName !== publicGitIdentity.name || commit.authorEmail !== publicGitIdentity.email) {
+      findings.push(`${label}: author-identity-mismatch`);
+    }
+    if (commit.committerName !== publicGitIdentity.name || commit.committerEmail !== publicGitIdentity.email) {
+      findings.push(`${label}: committer-identity-mismatch`);
+    }
+  }
+  return [...new Set(findings)];
+}
+
 const references = scanReferences();
 const secrets = scanSecrets();
 const historyFindings = [...references.history, ...secrets.history];
 const pathFindings = scanPublicPaths();
 const assetResult = scanAssets();
+const identityFindings = scanPublicGitIdentity();
 
 console.log(`GIT_HISTORY_SCAN=${historyFindings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
 console.log(`PUBLIC_PATH_SCAN=${pathFindings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
 console.log(`PUBLIC_ASSET_SCAN=${assetResult.findings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
+console.log(`PUBLIC_GIT_IDENTITY_SCAN=${identityFindings.length === 0 ? 'ZERO_FINDINGS' : 'FINDINGS'}`);
 console.log(`PUBLIC_ASSETS=${assetResult.assets.length}`);
 
-const findings = [...historyFindings, ...pathFindings, ...assetResult.findings];
+const findings = [...historyFindings, ...pathFindings, ...assetResult.findings, ...identityFindings];
 if (findings.length > 0) {
   console.log(findings.join('\n'));
   process.exitCode = 1;

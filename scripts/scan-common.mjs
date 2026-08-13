@@ -4,6 +4,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+export const publicGitIdentity = {
+  name: 'Luana do Amaral Bastos',
+  email: '114043780+luanaabastos@users.noreply.github.com'
+};
 const textExtensions = new Set([
   '.css', '.env', '.html', '.js', '.json', '.jsx', '.md', '.mjs', '.cjs',
   '.ps1', '.sql', '.ts', '.tsx', '.txt', '.yaml', '.yml'
@@ -96,11 +100,11 @@ historyBlobs.cache = null;
 
 export function historyCommits() {
   if (historyCommits.cache) return historyCommits.cache;
-  const result = git(['log', '--all', '--format=%H%x1f%an%x1f%ae%x1f%B%x1e']);
+  const result = git(['log', '--all', '--format=%H%x1f%an%x1f%ae%x1f%cn%x1f%ce%x1f%B%x1e']);
   if (result.status !== 0) throw new Error('Unable to enumerate Git commits');
   historyCommits.cache = result.stdout.split('\x1e').map((record) => record.trim()).filter(Boolean).map((record) => {
-    const [sha, authorName, authorEmail, ...message] = record.split('\x1f');
-    return { sha, authorName, authorEmail, message: message.join('\x1f') };
+    const [sha, authorName, authorEmail, committerName, committerEmail, ...message] = record.split('\x1f');
+    return { sha, authorName, authorEmail, committerName, committerEmail, message: message.join('\x1f') };
   });
   return historyCommits.cache;
 }

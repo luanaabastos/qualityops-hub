@@ -14,6 +14,7 @@ No milestone below carries a promised date.
 - Pipeline Lab background execution and dashboard polling
 - Execution Details, freshness, origin badges, and Regression Delta
 - Local evidence capture and public-release safety scans
+- MIT License and sanitized public Git identity
 
 ## Next
 

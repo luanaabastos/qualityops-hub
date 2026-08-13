@@ -2,7 +2,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bufferText, git, historyBlobs, historyCommits, isTextPath, workingEntries } from './scan-common.mjs';
+import { bufferText, git, historyBlobs, historyCommits, isTextPath, publicGitIdentity, workingEntries } from './scan-common.mjs';
 
 const textRules = [
   { label: 'personal-windows-path', pattern: /[a-z]:\\users\\[^\\\s]+/i },
@@ -13,7 +13,6 @@ const textRules = [
 ];
 const emailPattern = /\b[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
 const allowedEmailDomains = new Set(['example.com', 'example.test', 'users.noreply.github.com']);
-const allowedAuthorNames = new Set(['QualityOps Hub', 'QualityOps Bot']);
 
 function allowedEmailDomain(domain) {
   return allowedEmailDomains.has(domain)
@@ -54,9 +53,10 @@ export function scanReferences() {
   }
   for (const commit of historyCommits()) {
     const label = `git-history:${commit.sha.slice(0, 12)}`;
-    if (!allowedAuthorNames.has(commit.authorName)) history.push(`${label}: personal-author-name`);
-    const domain = commit.authorEmail.split('@')[1]?.toLowerCase();
-    if (!domain || !allowedEmailDomain(domain)) history.push(`${label}: non-public-author-email`);
+    if (commit.authorName !== publicGitIdentity.name) history.push(`${label}: non-public-author-name`);
+    if (commit.authorEmail !== publicGitIdentity.email) history.push(`${label}: non-public-author-email`);
+    if (commit.committerName !== publicGitIdentity.name) history.push(`${label}: non-public-committer-name`);
+    if (commit.committerEmail !== publicGitIdentity.email) history.push(`${label}: non-public-committer-email`);
     inspectText(`${label}:message`, commit.message, history);
   }
   const localConfig = git(['config', '--local', '--list']);

@@ -2,6 +2,8 @@
 
 **Portfolio Preview** — a TestOps portfolio platform that turns automated-test reports into quality signals that can be compared over time.
 
+License: [MIT](LICENSE)
+
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
 ## Why this project exists
@@ -188,7 +190,11 @@ Implemented capabilities and honest next milestones are tracked in [docs/roadmap
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real browser demo runners, and evidence flow are implemented. Public publication remains a separate human-authorized action. License selection is also intentionally pending.
+The local application, database-backed ingestion, real browser demo runners, and evidence flow are implemented. Public publication remains a separate human-authorized action.
+
+## License
+
+QualityOps Hub is available under the [MIT License](LICENSE).
 
 ## Disclaimer
 

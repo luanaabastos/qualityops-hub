@@ -3,6 +3,7 @@
   "description": "A portfolio TestOps platform that turns framework reports into comparable quality signals.",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "packageManager": "pnpm@10.34.5",
   "volta": {
     "node": "20.20.1",
