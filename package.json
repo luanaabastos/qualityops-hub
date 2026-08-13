@@ -2,22 +2,23 @@
   "name": "qualityops-hub",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@10.34.5",
   "volta": {
     "node": "20.20.1",
-    "pnpm": "11.21.0"
+    "pnpm": "10.34.5"
   },
   "engines": {
     "node": ">=20.20.1 <21",
-    "pnpm": "11.21.0"
+    "pnpm": "10.34.5"
   },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test -- --run",
+    "build": "node scripts/workspace-run.mjs build",
+    "lint": "node scripts/workspace-run.mjs lint",
+    "typecheck": "node scripts/workspace-run.mjs typecheck",
+    "test": "node scripts/workspace-run.mjs test",
     "test:e2e": "playwright test",
+    "evidence:capture": "node scripts/capture-evidence.mjs",
     "scan:references": "node scripts/reference-scan.mjs",
     "scan:secrets": "node scripts/secret-scan.mjs",
     "demo:start": "node scripts/demo-runner.mjs start",
