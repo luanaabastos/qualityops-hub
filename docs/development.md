@@ -1,5 +1,7 @@
 # Development runtime
 
+Use `pnpm demo:start` to start the Compose PostgreSQL service and both local applications. The API applies ordered migrations before seeding fictional data. Compose creates separate `qualityops_dev` and `qualityops_test` databases so integration cleanup can never remove demo history or runtime tokens. All gates require PostgreSQL and must complete with no skipped tests. Runner output belongs only below ignored `artifacts/demo-runs` paths.
+
 QualityOps Hub is validated with Node.js 20.20.1 and pnpm 10.34.5. Both versions are pinned in the root `package.json`.
 
 ## Windows PATH checks

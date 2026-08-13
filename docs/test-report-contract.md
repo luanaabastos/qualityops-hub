@@ -1,48 +1,41 @@
-# Test Report Contract
+# Test report contract
 
-## Normalized execution model
+`POST /api/products/:productKey/test-reports` accepts JSON and requires `Authorization: Bearer <product-token>`.
+
+The envelope contains `reportFormat`, `source`, `suiteType`, `branch`, `commitSha`, nullable pipeline/job identifiers and URLs, `jobName`, `environment`, ISO `startedAt`/`finishedAt`, and `report`. Shared Zod schemas reject malformed envelopes and product/format mismatches.
+
+## Formats
+
+### `mochawesome`
+
+ShopSphere accepts a real Mochawesome JSON document. The adapter recursively walks `results`, nested `suites`, and each `tests` entry. Root totals are not authoritative. It extracts file, suite path, title, duration, state and error.
+
+### `playwright-json-v1`
+
+ServiceDesk uses an intentionally versioned public projection:
 
 ```json
 {
-  "executionId": "exec-001",
-  "productKey": "shopsphere",
-  "suite": "Regression",
-  "status": "FAILED",
-  "startedAt": "2026-08-12T06:00:00.000Z",
-  "finishedAt": "2026-08-12T06:14:37.000Z",
-  "pipeline": {
-    "provider": "github-actions",
-    "repository": "example/shopsphere-demo",
-    "branch": "main",
-    "commitSha": "abc1234",
-    "pipelineId": "1234",
-    "pipelineUrl": "https://example.test/workflows/1234",
-    "jobId": "5678",
-    "jobName": "cypress-regression",
-    "jobUrl": "https://example.test/jobs/5678",
-    "artifactUrl": "https://example.test/artifacts/5678",
-    "environment": "staging",
-    "source": "push",
-    "suiteType": "Regression"
-  },
-  "tests": [
-    {
-      "name": "cart-checkout-success",
-      "status": "FAILED",
-      "durationMs": 18200,
-      "scenarioId": "SCN-015",
-      "error": {
-        "type": "AssertionError",
-        "message": "expected total to equal 149.90"
-      }
-    }
-  ]
+  "version": "playwright-json-v1",
+  "framework": "Playwright",
+  "infrastructureError": null,
+  "tests": [{
+    "file": "demo.spec.ts",
+    "suitePath": ["Tickets"],
+    "title": "opens ticket",
+    "status": "passed",
+    "durationMs": 120,
+    "error": null
+  }]
 }
 ```
 
-## Rules
+The API is not coupled to Playwright's unversioned internal reporter shape.
 
-- Infrastructure errors are separated from functional failures.
-- Statuses must normalize to PASSED, FAILED, SKIPPED, ERROR and NOT_EXECUTED.
-- The execution identity is stable by product + pipeline + job + format + content hash.
-- Idempotent ingestion must return 409 Conflict for same key with different content.
+### `mobile-e2e-json-v1`
+
+PocketWallet requires `version`, `executionMode=MOBILE_HARNESS_DEMO`, totals, `infrastructureError`, and test entries. It never represents a device or Appium session.
+
+## Normalized status
+
+The common statuses are `PASSED`, `FAILED`, `SKIPPED`, `ERROR`, and `NOT_EXECUTED`. Infrastructure startup failures preserve a known suite total when available while forcing all execution counters to zero except `errors`.
