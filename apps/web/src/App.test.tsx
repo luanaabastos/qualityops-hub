@@ -24,6 +24,7 @@ describe('App shell', () => {
             name: 'ShopSphere',
             framework: 'Cypress',
             status: 'ACTIVE',
+            executionStatus: 'FAILED',
             total: 46,
             executed: 46,
             passed: 43,

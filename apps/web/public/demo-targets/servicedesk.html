@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ServiceDesk demo target</title></head>
+<body>
+  <main>
+    <h1>ServiceDesk fictional portal</h1>
+    <input id="ticket-title" aria-label="Ticket title"><button id="open-ticket">Open ticket</button>
+    <input id="ticket-description" aria-label="Description"><button id="edit-ticket">Save changes</button>
+    <select id="priority" aria-label="Priority"><option>Low</option><option>High</option></select>
+    <button id="resolve-ticket">Resolve ticket</button>
+    <select id="filter" aria-label="Filter tickets"><option>All</option><option>Resolved</option></select>
+    <output id="state">No ticket</output>
+  </main>
+  <script>
+    const state = document.querySelector('#state');
+    document.querySelector('#open-ticket').addEventListener('click', () => { state.textContent = 'Ticket opened'; });
+    document.querySelector('#edit-ticket').addEventListener('click', () => { state.textContent = 'Ticket updated'; });
+    document.querySelector('#priority').addEventListener('change', event => { state.textContent = `Priority: ${event.target.value}`; });
+    document.querySelector('#resolve-ticket').addEventListener('click', () => { state.textContent = 'Ticket resolved'; });
+    document.querySelector('#filter').addEventListener('change', event => { state.textContent = `Filter: ${event.target.value}`; });
+  </script>
+</body>
+</html>
