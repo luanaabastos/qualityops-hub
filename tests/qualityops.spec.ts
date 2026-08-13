@@ -1,11 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const localDemoCooldownMs = 10_000;
+let lastDemoSubmissionAt = 0;
+
 async function runPipeline(page: Page, product: string, mode: string) {
   await page.goto('/pipeline-lab');
   await page.getByLabel('Product').selectOption(product);
   await page.getByLabel('Suite').selectOption('REGRESSION');
   await page.getByLabel('Execution mode').selectOption(mode);
+  const remainingCooldown = lastDemoSubmissionAt + localDemoCooldownMs - Date.now();
+  if (remainingCooldown > 0) await page.waitForTimeout(remainingCooldown + 250);
   await page.getByRole('button', { name: 'Run demo pipeline' }).click();
+  lastDemoSubmissionAt = Date.now();
   await expect(page.locator('code').first()).not.toBeEmpty();
   await expect(page.getByRole('heading', { name: 'Pipeline result' })).toBeVisible({ timeout: 120_000 });
 }
