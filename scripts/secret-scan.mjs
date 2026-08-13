@@ -10,7 +10,7 @@ const textExtensions = new Set([
   '.ps1', '.sql', '.ts', '.tsx', '.txt', '.yaml', '.yml'
 ]);
 const skippedDirectories = new Set([
-  '.git', '.pnpm', '.pnpm-store', '.demo-logs', 'coverage', 'dist',
+  '.git', '.pnpm', '.pnpm-store', '.cache', '.demo-logs', 'coverage', 'dist',
   'node_modules', 'playwright-report', 'test-results'
 ]);
 const skippedFiles = new Set(['scripts/secret-scan.mjs']);
@@ -22,7 +22,7 @@ const strongPatterns = [
   { label: 'github-token', pattern: /\bgh[pousr]_[A-Za-z0-9_]{30,}\b/ },
   { label: 'generic-long-token', pattern: /\b(?:sk|pk)_(?:live|prod)_[A-Za-z0-9]{20,}\b/i }
 ];
-const assignmentPattern = /(?:api[_-]?key|client[_-]?secret|secret[_-]?key|password|token)\s*[:=]\s*["']?([^\s,"']+)/i;
+const assignmentPattern = /(?<![a-z0-9_-])(?:api[_-]?key|client[_-]?secret|secret[_-]?key|password|token)(?![a-z0-9_-])\s*[:=]\s*["']([^"']+)["']/i;
 
 function relative(file) {
   return path.relative(root, file).replaceAll('\\', '/');

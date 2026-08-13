@@ -1,23 +1,49 @@
-name: QualityOps Hub Platform
+name: Platform validation
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+  pull_request:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: qualityops_dev
+          POSTGRES_USER: qualityops
+          POSTGRES_PASSWORD: qualityops
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U qualityops -d qualityops_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://qualityops:qualityops@localhost:5432/qualityops_dev
+      TEST_DATABASE_URL: postgresql://qualityops:qualityops@localhost:5432/qualityops_test
+      DEMO_PIPELINE_LAB_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20.20.1
           cache: pnpm
       - run: corepack enable
+      - run: corepack prepare pnpm@10.34.5 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Create isolated test database
+        env:
+          PGPASSWORD: qualityops
+        run: createdb --host localhost --username qualityops qualityops_test
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Start platform and run browser acceptance
+        run: |
+          pnpm --filter @qualityops-hub/api exec tsx src/server.ts > api.log 2>&1 &
+          pnpm --filter @qualityops-hub/web dev --host 127.0.0.1 > web.log 2>&1 &
+          curl --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:3001/api/readiness
+          curl --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:5173
+          pnpm test:e2e

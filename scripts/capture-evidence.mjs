@@ -11,106 +11,77 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baseURL = process.env.QUALITYOPS_WEB_URL ?? 'http://localhost:5173';
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const directoryArgument = process.argv.find((argument) => argument.startsWith('--artifact-directory='))?.split('=')[1];
-const onlyArgument = process.argv.find((argument) => argument.startsWith('--only='))?.split('=')[1];
-const defaultArtifactDirectory = path.join(root, 'artifacts', 'frontend-review', timestamp);
-const artifactDirectory = directoryArgument ? path.resolve(root, directoryArgument) : defaultArtifactDirectory;
-const evidenceRoot = path.join(root, 'artifacts', 'frontend-review');
+const evidenceRoot = path.join(root, 'artifacts', 'checkpoint-4');
+const artifactDirectory = directoryArgument ? path.resolve(root, directoryArgument) : path.join(evidenceRoot, timestamp);
+if (!artifactDirectory.startsWith(`${evidenceRoot}${path.sep}`)) throw new Error('Evidence output must stay inside artifacts/checkpoint-4');
 
-if (!artifactDirectory.startsWith(`${evidenceRoot}${path.sep}`)) {
-  throw new Error('Evidence output must stay inside artifacts/frontend-review');
-}
-const commit = spawnSync(
-  'git',
-  ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'rev-parse', '--short', 'HEAD'],
-  { cwd: root, encoding: 'utf8' }
-).stdout.trim();
-
-const evidence = [
-  { filename: '01-overview-desktop.png', route: '/', viewport: { width: 1440, height: 900 } },
-  { filename: '02-products-desktop.png', route: '/products', viewport: { width: 1440, height: 900 } },
-  { filename: '03-shopsphere.png', route: '/products/shopsphere', viewport: { width: 1280, height: 900 } },
-  { filename: '04-servicedesk.png', route: '/products/servicedesk', viewport: { width: 1280, height: 900 } },
-  { filename: '05-pocketwallet.png', route: '/products/pocketwallet', viewport: { width: 1440, height: 900 } },
-  { filename: '06-executions.png', route: '/executions', viewport: { width: 1440, height: 900 } },
-  { filename: '07-how-it-works.png', route: '/how-it-works', viewport: { width: 1280, height: 900 } },
-  { filename: '08-overview-tablet.png', route: '/', viewport: { width: 768, height: 1024 } },
-  { filename: '09-overview-mobile.png', route: '/', viewport: { width: 390, height: 844 } },
-  {
-    filename: '10-mobile-drawer.png',
-    route: '/',
-    viewport: { width: 390, height: 844 },
-    fullPage: false,
-    prepare: async (page) => page.getByRole('button', { name: 'Open navigation' }).click()
-  },
-  {
-    filename: '11-empty-state.png',
-    route: '/executions',
-    viewport: { width: 1280, height: 720 },
-    prepare: async (page) => {
-      await page.getByLabel('Product').selectOption('pocketwallet');
-      await page.getByLabel('Status').selectOption('FAILED');
-      await page.getByText('No executions match the selected filters.').waitFor();
-    }
-  },
-  { filename: '12-stale-state.png', route: '/products/servicedesk', viewport: { width: 1280, height: 900 } },
-  { filename: '13-infrastructure-error.png', route: '/products/pocketwallet', viewport: { width: 1440, height: 1100 } }
-];
-
+const commit = spawnSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 await mkdir(artifactDirectory, { recursive: true });
 const browser = await chromium.launch();
-const manifestPath = path.join(artifactDirectory, 'manifest.json');
-let manifestEntries = [];
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+const page = await context.newPage();
+const entries = [];
 
-try {
-  manifestEntries = JSON.parse(await readFile(manifestPath, 'utf8')).screenshots ?? [];
-} catch {
-  manifestEntries = [];
+async function capture(filename, route, runId = null, product = null, mode = null) {
+  const output = path.join(artifactDirectory, `${filename}.png`);
+  await page.screenshot({ path: output, fullPage: true, animations: 'disabled' });
+  entries.push({
+    filename: `${filename}.png`, route, runId, product, mode,
+    timestamp: new Date().toISOString(), commit, syntheticData: true,
+    sha256: createHash('sha256').update(await readFile(output)).digest('hex')
+  });
 }
 
-const selectedEvidence = onlyArgument
-  ? evidence.filter((item) => onlyArgument.split(',').includes(item.filename))
-  : evidence;
-
-if (selectedEvidence.length === 0) throw new Error('No evidence matched --only');
+async function runPipeline(product, mode, captureRunning = false) {
+  await page.goto(`${baseURL}/pipeline-lab`, { waitUntil: 'networkidle' });
+  await page.getByLabel('Product').selectOption(product);
+  await page.getByLabel('Suite').selectOption('REGRESSION');
+  await page.getByLabel('Execution mode').selectOption(mode);
+  await page.getByRole('button', { name: 'Run demo pipeline' }).click();
+  const runId = await page.locator('code').first().textContent();
+  if (!runId) throw new Error('Pipeline Lab did not return a runId');
+  if (captureRunning) {
+    await page.getByText('Running known local demo runner').waitFor({ timeout: 30_000 });
+    await capture('02-run-running', '/pipeline-lab', runId, product, mode);
+  }
+  await page.getByRole('heading', { name: 'Pipeline result' }).waitFor({ timeout: 120_000 });
+  const executionHref = await page.getByRole('link', { name: 'View execution' }).getAttribute('href');
+  return { runId, executionHref };
+}
 
 try {
-  for (const item of selectedEvidence) {
-    const context = await browser.newContext({ viewport: item.viewport, reducedMotion: 'reduce' });
-    const page = await context.newPage();
-    await page.goto(`${baseURL}${item.route}`, { waitUntil: 'networkidle' });
-    await page.locator('main').waitFor();
-    if (item.prepare) await item.prepare(page);
+  await page.goto(`${baseURL}/pipeline-lab`, { waitUntil: 'networkidle' });
+  await capture('01-pipeline-lab', '/pipeline-lab');
 
-    const output = path.join(artifactDirectory, item.filename);
-    await page.screenshot({ path: output, fullPage: item.fullPage ?? true, animations: 'disabled' });
-    const hash = createHash('sha256').update(await readFile(output)).digest('hex');
+  const shopSuccess = await runPipeline('shopsphere', 'SUCCESS', true);
+  await capture('03-shopsphere-success', '/pipeline-lab', shopSuccess.runId, 'shopsphere', 'SUCCESS');
 
-    const entry = {
-      filename: item.filename,
-      route: item.route,
-      viewport: item.viewport,
-      timestamp: new Date().toISOString(),
-      commit,
-      syntheticData: true,
-      sha256: hash
-    };
-    manifestEntries = [...manifestEntries.filter((existing) => existing.filename !== item.filename), entry];
-    await context.close();
-  }
+  const shopFailure = await runPipeline('shopsphere', 'FUNCTIONAL_FAILURE');
+  await capture('04-shopsphere-functional-failure', '/pipeline-lab', shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
+
+  const serviceSuccess = await runPipeline('servicedesk', 'SUCCESS');
+  await capture('05-servicedesk-success', '/pipeline-lab', serviceSuccess.runId, 'servicedesk', 'SUCCESS');
+
+  const pocketError = await runPipeline('pocketwallet', 'INFRASTRUCTURE_FAILURE');
+  await capture('06-pocketwallet-infrastructure-error', '/pipeline-lab', pocketError.runId, 'pocketwallet', 'INFRASTRUCTURE_FAILURE');
+
+  await page.goto(`${baseURL}/`, { waitUntil: 'networkidle' });
+  await capture('07-overview-after-run', '/');
+  await page.goto(`${baseURL}/executions`, { waitUntil: 'networkidle' });
+  await capture('08-execution-history', '/executions');
+  if (!shopFailure.executionHref) throw new Error('ShopSphere failure execution link is unavailable');
+  await page.goto(`${baseURL}${shopFailure.executionHref}`, { waitUntil: 'networkidle' });
+  await capture('09-execution-details', shopFailure.executionHref, shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
+  await page.goto(`${baseURL}/products/shopsphere`, { waitUntil: 'networkidle' });
+  await capture('10-regression-delta', '/products/shopsphere', shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
 } finally {
+  await context.close();
   await browser.close();
 }
 
-const manifest = {
-  generatedAt: new Date().toISOString(),
-  commit,
-  syntheticData: true,
-  screenshots: manifestEntries
-};
-
-manifestEntries.sort((left, right) => left.filename.localeCompare(right.filename));
-await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+await writeFile(path.join(artifactDirectory, 'manifest.json'), `${JSON.stringify({
+  generatedAt: new Date().toISOString(), commit, syntheticData: true, screenshots: entries
+}, null, 2)}\n`);
 console.log(`EVIDENCE_ARTIFACT_DIRECTORY=${path.relative(root, artifactDirectory).replaceAll('\\', '/')}`);
-console.log(`EVIDENCE_SCREENSHOTS=${manifestEntries.length}`);
-console.log(`EVIDENCE_REGENERATED=${selectedEvidence.length}`);
+console.log(`EVIDENCE_SCREENSHOTS=${entries.length}`);
 console.log('EVIDENCE_MANIFEST=PASS');

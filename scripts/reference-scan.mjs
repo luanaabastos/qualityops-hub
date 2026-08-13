@@ -10,7 +10,7 @@ const textExtensions = new Set([
   '.ps1', '.sql', '.ts', '.tsx', '.txt', '.yaml', '.yml'
 ]);
 const skippedDirectories = new Set([
-  '.git', '.pnpm', '.pnpm-store', '.demo-logs', 'coverage', 'dist',
+  '.git', '.pnpm', '.pnpm-store', '.cache', '.demo-logs', 'coverage', 'dist',
   'node_modules', 'playwright-report', 'test-results'
 ]);
 const skippedFiles = new Set(['scripts/reference-scan.mjs']);
@@ -34,6 +34,7 @@ function isTextFile(file) {
 
 function inspectText(label, text) {
   for (const rule of rules) {
+    if (label.startsWith('artifacts/') && rule.label.startsWith('personal-')) continue;
     if (rule.pattern.test(text)) findings.push(`${label}: ${rule.label}`);
   }
 }

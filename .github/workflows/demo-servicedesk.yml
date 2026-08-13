@@ -1,38 +1,21 @@
-name: ServiceDesk Demo Pipeline
+name: Demo report - ServiceDesk
 
-on:
-  workflow_dispatch:
-    inputs:
-      suite:
-        description: Suite to run
-        required: true
-        default: E2E
-        type: choice
-        options:
-          - E2E
-          - Smoke
-      failureMode:
-        description: Failure behavior
-        required: true
-        default: none
-        type: choice
-        options:
-          - none
-          - functional-failure
-          - infrastructure-failure
+on: workflow_dispatch
 
 jobs:
-  playwright-demo:
+  playwright-report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: echo "Playwright demo pipeline for ServiceDesk is running."
-      - run: node -e "const mode = '${{ github.event.inputs.failureMode }}'; const suite='${{ github.event.inputs.suite }}'; console.log('SERVICEDESK_DEMO'); console.log(JSON.stringify({ product: 'servicedesk', suite, failureMode: mode, framework: 'Playwright real demo', modeLabel: 'DEMO' }, null, 2));" > report.json
+        with: { node-version: 20.20.1, cache: pnpm }
+      - run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright and produce versioned report
+        run: |
+          pnpm --filter @qualityops-hub/web dev --host 127.0.0.1 > web.log 2>&1 &
+          curl --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:5173/demo-targets/servicedesk.html
+          node demo-runners/servicedesk/run.mjs SUCCESS artifacts/demo-runs/ci-servicedesk
       - uses: actions/upload-artifact@v4
-        with:
-          name: servicedesk-demo-report
-          path: report.json
+        with: { name: servicedesk-playwright-json-v1, path: artifacts/demo-runs/ci-servicedesk/raw-report.json }

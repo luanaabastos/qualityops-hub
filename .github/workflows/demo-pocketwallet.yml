@@ -1,38 +1,16 @@
-name: PocketWallet Demo Pipeline
+name: Demo report - PocketWallet harness
 
-on:
-  workflow_dispatch:
-    inputs:
-      suite:
-        description: Suite to run
-        required: true
-        default: Mobile
-        type: choice
-        options:
-          - Mobile
-          - Smoke
-      failureMode:
-        description: Failure behavior
-        required: true
-        default: none
-        type: choice
-        options:
-          - none
-          - functional-failure
-          - infrastructure-failure
+on: workflow_dispatch
 
 jobs:
-  mobile-harness-demo:
+  mobile-harness-report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: echo "MOBILE HARNESS DEMO"
-      - run: node -e "const mode = '${{ github.event.inputs.failureMode }}'; const suite='${{ github.event.inputs.suite }}'; console.log('POCKETWALLET_DEMO'); console.log(JSON.stringify({ product: 'pocketwallet', suite, failureMode: mode, framework: 'MOBILE HARNESS DEMO', modeLabel: 'DEMO' }, null, 2));" > report.json
+        with: { node-version: 20.20.1, cache: pnpm }
+      - run: corepack enable && corepack prepare pnpm@10.34.5 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: node demo-runners/pocketwallet/harness.mjs SUCCESS artifacts/demo-runs/ci-pocketwallet
       - uses: actions/upload-artifact@v4
-        with:
-          name: pocketwallet-demo-report
-          path: report.json
+        with: { name: pocketwallet-mobile-e2e-json-v1, path: artifacts/demo-runs/ci-pocketwallet/raw-report.json }
