@@ -3,8 +3,10 @@ node_modules
 .pnpm-store
 coverage
 dist
+build/
 *.tsbuildinfo
 .vite
+.playwright/
 .env
 .env.*
 !.env.example
@@ -13,7 +15,10 @@ playwright-report
 test-results/
 **/.cache
 **/tmp
+tmp/
+temp/
 **/generated
+*.log
 .demo-state.json
 .demo-logs/
 artifacts/

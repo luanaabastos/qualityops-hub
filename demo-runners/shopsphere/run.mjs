@@ -19,7 +19,7 @@ if (mode === 'INFRASTRUCTURE_FAILURE') {
 }
 
 const cli = path.join(root, 'node_modules', 'cypress', 'bin', 'cypress');
-const runnerEnvironment = { ...process.env, DEMO_MODE: mode, DEMO_ARTIFACT_DIR: output, CYPRESS_CACHE_FOLDER: path.join(root, '.cache', 'cypress') };
+const runnerEnvironment = { ...process.env, DEMO_MODE: mode, DEMO_ARTIFACT_DIR: output };
 delete runnerEnvironment.ELECTRON_RUN_AS_NODE;
 const code = await new Promise((resolve, reject) => {
   const child = spawn(process.execPath, [cli, 'run', '--config-file', 'demo-runners/shopsphere/cypress.config.ts', '--browser', 'electron'], {
