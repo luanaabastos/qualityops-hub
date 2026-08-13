@@ -15,6 +15,7 @@ No milestone below carries a promised date.
 - Execution Details, freshness, origin badges, and Regression Delta
 - Local evidence capture and public-release safety scans
 - MIT License and sanitized public Git identity
+- `LICENSE=MIT`
 
 ## Next
 

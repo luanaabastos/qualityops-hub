@@ -1,59 +1,68 @@
 # Public release manifest
 
-This manifest records the audited content commit immediately before this manifest-only commit.
+This manifest records the sanitized and validated content commit immediately before this manifest-only update.
 
-- Audited content commit: `c4e0698f98494769c5e2f649a521c060a4d58a1d`
+- Sanitized rewrite base HEAD: `cd7e89a19918f823bdd18ed74d68c4588b35df8b`
+- Audited release content HEAD: `1c315dab9fa6a73ca08f9a4a980bbc3a79a803e3`
+- Audited release content tree: `abb1eb6039776ea2ef791f92ee09856f66e96622`
+- Commits after metadata rewrite: 11
+- Commits after MIT release content: 12
 - Runtime: Node.js `20.20.1`, pnpm `10.34.5`
 - Package status: private monorepo, version `0.1.0`
 - Public status: **Portfolio Preview**
-- Publication status: `PUBLIC_HISTORY_BLOCKER`
-- License status: `LICENSE_DECISION_REQUIRED`
+- Release gate: `PUBLIC_RELEASE_READY`
+- Publication status: `PUBLICATION_APPROVAL_REQUIRED`
+- License: `MIT`
+- `LICENSE=MIT`
 - Remote: none
+
+The manifest commit changes HEAD by definition without changing the release facts above. The final HEAD is reported by `git rev-parse HEAD` after this file is committed.
+
+## Git history sanitization
+
+All reachable commits use the authorized public identity for both author and committer. The `LEGACY_NON_PUBLIC_GIT_IDENTITY` metadata was replaced without changing commit messages, commit order, author/committer timestamps, per-commit trees, or the final pre-release tree.
+
+- Commits before rewrite: 11
+- Commits after rewrite: 11
+- Final tree equivalence: passed
+- Commit-tree sequence equivalence: passed
+- Commit-message sequence equivalence: passed
+- Timestamp equivalence: passed
+- Old backup/original refs remaining: 0
+
+No squash or remote operation was performed.
 
 ## Validation
 
 | Gate | Result | Detail |
 |---|---|---|
-| Frozen install | Passed | Lockfile current; no dependency resolution drift |
+| Frozen install | Passed | Lockfile current; no resolution drift |
 | Lint | Passed | All workspaces |
 | Typecheck | Passed | All workspaces |
 | Tests | Passed | 24 executed, 24 passed, 0 failed, 0 skipped |
 | Build | Passed | Shared, API, and Vite web build |
 | Playwright E2E | Passed | 4 executed, 4 passed, 0 failed, 0 skipped |
-| Demo reset | Passed | Refused without confirmation; local reset, seed, and restart succeeded with confirmation |
 | Demo lifecycle | Passed | Start, status, and stop succeeded |
 
-The final live demo set persisted these outcomes:
+## Demo smoke
 
-| Product | Mode | Executed | Passed | Failed | Errors |
-|---|---|---:|---:|---:|---:|
-| ShopSphere | Success | 5 | 5 | 0 | 0 |
-| ShopSphere | Functional failure | 5 | 4 | 1 | 0 |
-| ServiceDesk | Success | 5 | 5 | 0 | 0 |
-| PocketWallet | Infrastructure failure | 0 | 0 | 0 | 1 |
+| Product | Mode | Executed | Passed | Failed | Errors | Approval |
+|---|---|---:|---:|---:|---:|---:|
+| ShopSphere | Success | 5 | 5 | 0 | 0 | 100% |
+| ShopSphere | Functional failure | 5 | 4 | 1 | 0 | 80% |
+| ServiceDesk | Success | 5 | 5 | 0 | 0 | 100% |
+| PocketWallet | Infrastructure failure | 0 | 0 | 0 | 1 | null |
+
+PocketWallet remained an explicit `MOBILE_HARNESS_DEMO` infrastructure failure with `status=ERROR`, `executed=0`, and `approvalRate=null`.
 
 ## Scans
 
-- `CORPORATE_REFERENCE_SCAN=FINDINGS`
+- `CORPORATE_REFERENCE_SCAN=ZERO_FINDINGS`
 - `SECRET_SCAN=ZERO_FINDINGS`
-- `GIT_HISTORY_SCAN=FINDINGS`
+- `GIT_HISTORY_SCAN=ZERO_FINDINGS`
 - `PUBLIC_PATH_SCAN=ZERO_FINDINGS`
 - `PUBLIC_ASSET_SCAN=ZERO_FINDINGS`
-
-### Public history blocker
-
-The following legacy commits contain a personal author name and a corporate-domain author email in commit metadata:
-
-- `783b98fb589b0c63da83c97a31b08b86b4a9019b`
-- `afb3bf656dc42b37a9255cba8311d08bbfae7570`
-- `a082da6c58f05e8dd86c068186033bbd7f45af8d`
-- `4c9f9b0df966aad8f5b8ffba0703dafc6f3e2f47`
-- `5a803444efd61ee59f14602638a639be0a32e24b`
-- `f18b0528a61a809269273f5d2e56e4558ef77485`
-- `ad019baeb9750a2091557c9f47a5b99f38a77bf1`
-- `46bf3701fb6bd76a1e6397c33b4b42a2a8cdc114`
-
-No sensitive value is reproduced here. Correcting those fields requires an explicitly authorized history rewrite. The two Checkpoint 5 content commits use the neutral public identity `QualityOps Hub` with an example-domain email. Publication remains blocked until a human chooses whether and how to rewrite the eight legacy commits.
+- `PUBLIC_GIT_IDENTITY_SCAN=ZERO_FINDINGS`
 
 ## Public assets
 
@@ -70,31 +79,24 @@ All five PNG files were visually inspected. They contain only the QualityOps Hub
 ## Workflows
 
 - `platform.yml`: frozen install, PostgreSQL, lint, typecheck, tests, build, scans, and Chromium E2E.
-- `demo-shopsphere.yml`: runs Cypress and uploads a Mochawesome artifact.
-- `demo-servicedesk.yml`: runs Playwright and uploads a versioned JSON artifact.
-- `demo-pocketwallet.yml`: runs the Mobile Harness Demo and uploads its JSON artifact.
+- `demo-shopsphere.yml`: Cypress and Mochawesome artifact generation.
+- `demo-servicedesk.yml`: Playwright and versioned JSON artifact generation.
+- `demo-pocketwallet.yml`: Mobile Harness Demo JSON artifact generation.
 
-All workflows have read-only repository permissions and bounded timeouts. Demo workflows intentionally do not attempt remote ingestion. A future hosted API and approved CI secrets are prerequisites for that milestone.
-
-## Dependency review
-
-The dependency graph is deduplicated as far as pnpm's local check can determine. Three unused web-development packages were removed without updating application dependencies. Critical runtime dependencies are Fastify, `@fastify/cors`, PostgreSQL `pg`, Zod, React, React DOM, and React Router. Cypress, Playwright, and Mochawesome are critical demo/test tools.
-
-The lockfile reports three deprecated transitive packages inherited through tools. No mass upgrade was performed. A registry-backed vulnerability advisory check was not performed because this gate did not authorize external registry access; that remains required before any hosted deployment.
+All workflows use read-only repository permissions and bounded timeouts. They intentionally do not attempt remote ingestion before a public API exists.
 
 ## Known limitations
 
 - Local-only API and demo; no hosted endpoint exists.
-- In-process demo jobs have no distributed queue or crash recovery.
+- In-process jobs have no distributed queue or crash recovery.
 - No application or distributed rate limiter.
 - No user accounts, roles, tenant boundaries, or audit-log service.
 - Object storage is not configured; raw reports remain ignored local artifacts.
 - Integration tokens require explicit rotation/revocation and have no automatic expiry.
 - PocketWallet is a deterministic Mobile Harness Demo, not a real device run.
-- Automation Coverage, Flaky Test Radar, Video Evidence, and richer hosted integrations are roadmap items.
+- Automation Coverage, Flaky Test Radar, Video Evidence, and hosted integrations are roadmap items.
+- Registry-backed dependency advisory review remains necessary before a hosted deployment.
 
-## License recommendation
+## Publication boundary
 
-MIT is recommended for this small personal portfolio project because it is concise, familiar, and permissive. Apache-2.0 is also permissive and adds an explicit patent grant and notice obligations, which is valuable for larger contributor or corporate ecosystems but adds complexity not currently needed here.
-
-No `LICENSE` file has been created. A human decision is required.
+The technical public-release gate is complete. Creating a GitHub repository, adding a remote, or pushing remains prohibited until separate explicit human approval.

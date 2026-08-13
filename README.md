@@ -4,6 +4,8 @@
 
 License: [MIT](LICENSE)
 
+`LICENSE=MIT`
+
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
 ## Why this project exists
