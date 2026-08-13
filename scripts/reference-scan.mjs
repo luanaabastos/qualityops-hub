@@ -6,7 +6,7 @@ import { bufferText, git, historyBlobs, historyCommits, isTextPath, publicGitIde
 
 const textRules = [
   { label: 'personal-windows-path', pattern: /[a-z]:\\users\\[^\\\s]+/i },
-  { label: 'personal-posix-home', pattern: /\/(?:users|home)\/[^/\s]+/i },
+  { label: 'personal-posix-home', pattern: /\/(?:users|home)\/(?!runner(?:[/\s]|$))[^/\s]+/i },
   { label: 'private-ip-address', pattern: /\b(?:10\.(?:\d{1,3}\.){2}\d{1,3}|192\.168\.(?:\d{1,3}\.)\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.(?:\d{1,3}\.)\d{1,3})\b/ },
   { label: 'internal-hostname', pattern: /\b[a-z0-9.-]+\.(?:corp|internal|intranet|lan)\b/i },
   { label: 'private-gitlab-url', pattern: /https?:\/\/[^\s"']*gitlab[^\s"']*/i }
