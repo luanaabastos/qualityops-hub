@@ -38,6 +38,9 @@ test.describe.serial('hosted production smoke', () => {
     await page.getByRole('link', { name: 'View execution' }).click();
     await expect(page.getByRole('heading', { name: 'ShopSphere execution' })).toBeVisible();
     await expect(page.getByText('mochawesome', { exact: true })).toBeVisible();
+    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Pipeline metadata' }) });
+    await expect(metadata).not.toContainText(/https?:\/\/(?:localhost|127\.0\.0\.1)/);
+    await expect(metadata.getByRole('button', { name: 'Copy pipelineId' })).toBeVisible();
   });
 
   test('ShopSphere Functional Failure updates Dashboard and Regression Delta', async ({ page }) => {
@@ -60,9 +63,10 @@ test.describe.serial('hosted production smoke', () => {
   });
 
   test('serves all public views plus health and readiness from the compiled application', async ({ page, request }) => {
-    for (const route of ['/', '/products', '/pipeline-lab', '/executions', '/platform-health']) {
+    for (const route of ['/', '/products', '/pipeline-lab', '/executions', '/coverage', '/integrations', '/automation-plan', '/video-evidence', '/documentation', '/how-it-works', '/platform-health']) {
       await page.goto(route);
       await expect(page.getByRole('heading').first()).toBeVisible();
+      await expect(page.getByText('Coming in next milestone')).toHaveCount(0);
     }
     expect((await request.get('/api/health')).status()).toBe(200);
     expect((await request.get('/api/readiness')).status()).toBe(200);

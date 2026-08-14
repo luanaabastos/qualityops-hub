@@ -11,14 +11,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baseURL = process.env.QUALITYOPS_WEB_URL ?? 'http://localhost:5173';
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const directoryArgument = process.argv.find((argument) => argument.startsWith('--artifact-directory='))?.split('=')[1];
-const evidenceRoot = path.join(root, 'artifacts', 'checkpoint-4');
+const evidenceRoot = path.join(root, 'artifacts', 'checkpoint-7');
 const artifactDirectory = directoryArgument ? path.resolve(root, directoryArgument) : path.join(evidenceRoot, timestamp);
-if (!artifactDirectory.startsWith(`${evidenceRoot}${path.sep}`)) throw new Error('Evidence output must stay inside artifacts/checkpoint-4');
+if (!artifactDirectory.startsWith(`${evidenceRoot}${path.sep}`)) throw new Error('Evidence output must stay inside artifacts/checkpoint-7');
 
 const commit = spawnSync('git', ['-c', `safe.directory=${root.replaceAll('\\', '/')}`, 'rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 await mkdir(artifactDirectory, { recursive: true });
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
 const page = await context.newPage();
 const entries = [];
 
@@ -32,48 +32,43 @@ async function capture(filename, route, runId = null, product = null, mode = nul
   });
 }
 
-async function runPipeline(product, mode, captureRunning = false) {
-  await page.goto(`${baseURL}/pipeline-lab`, { waitUntil: 'networkidle' });
-  await page.getByLabel('Product').selectOption(product);
-  await page.getByLabel('Suite').selectOption('REGRESSION');
-  await page.getByLabel('Execution mode').selectOption(mode);
-  await page.getByRole('button', { name: 'Run demo pipeline' }).click();
-  const runId = await page.locator('code').first().textContent();
-  if (!runId) throw new Error('Pipeline Lab did not return a runId');
-  if (captureRunning) {
-    await page.getByText('Running known local demo runner').waitFor({ timeout: 30_000 });
-    await capture('02-run-running', '/pipeline-lab', runId, product, mode);
-  }
-  await page.getByRole('heading', { name: 'Pipeline result' }).waitFor({ timeout: 120_000 });
-  const executionHref = await page.getByRole('link', { name: 'View execution' }).getAttribute('href');
-  return { runId, executionHref };
-}
-
 try {
-  await page.goto(`${baseURL}/pipeline-lab`, { waitUntil: 'networkidle' });
-  await capture('01-pipeline-lab', '/pipeline-lab');
+  const desktopRoutes = [
+    ['01-overview', '/'],
+    ['02-pipeline-lab', '/pipeline-lab'],
+    ['03-products', '/products'],
+    ['05-executions', '/executions'],
+    ['07-coverage', '/coverage'],
+    ['08-integrations', '/integrations'],
+    ['09-automation-plan', '/automation-plan'],
+    ['10-video-evidence', '/video-evidence'],
+    ['11-documentation', '/documentation'],
+    ['12-how-it-works', '/how-it-works'],
+    ['13-platform-health', '/platform-health']
+  ];
+  for (const [filename, route] of desktopRoutes) {
+    await page.goto(`${baseURL}${route}`, { waitUntil: 'networkidle' });
+    await page.getByRole('heading').first().waitFor();
+    await capture(filename, route);
+  }
 
-  const shopSuccess = await runPipeline('shopsphere', 'SUCCESS', true);
-  await capture('03-shopsphere-success', '/pipeline-lab', shopSuccess.runId, 'shopsphere', 'SUCCESS');
+  await page.goto(`${baseURL}/products`, { waitUntil: 'networkidle' });
+  const productHref = await page.getByRole('link', { name: 'ShopSphere' }).getAttribute('href');
+  if (!productHref) throw new Error('Product details link is unavailable');
+  await page.goto(`${baseURL}${productHref}`, { waitUntil: 'networkidle' });
+  await capture('04-product-details', productHref, null, 'shopsphere');
 
-  const shopFailure = await runPipeline('shopsphere', 'FUNCTIONAL_FAILURE');
-  await capture('04-shopsphere-functional-failure', '/pipeline-lab', shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
-
-  const serviceSuccess = await runPipeline('servicedesk', 'SUCCESS');
-  await capture('05-servicedesk-success', '/pipeline-lab', serviceSuccess.runId, 'servicedesk', 'SUCCESS');
-
-  const pocketError = await runPipeline('pocketwallet', 'INFRASTRUCTURE_FAILURE');
-  await capture('06-pocketwallet-infrastructure-error', '/pipeline-lab', pocketError.runId, 'pocketwallet', 'INFRASTRUCTURE_FAILURE');
-
-  await page.goto(`${baseURL}/`, { waitUntil: 'networkidle' });
-  await capture('07-overview-after-run', '/');
   await page.goto(`${baseURL}/executions`, { waitUntil: 'networkidle' });
-  await capture('08-execution-history', '/executions');
-  if (!shopFailure.executionHref) throw new Error('ShopSphere failure execution link is unavailable');
-  await page.goto(`${baseURL}${shopFailure.executionHref}`, { waitUntil: 'networkidle' });
-  await capture('09-execution-details', shopFailure.executionHref, shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
-  await page.goto(`${baseURL}/products/shopsphere`, { waitUntil: 'networkidle' });
-  await capture('10-regression-delta', '/products/shopsphere', shopFailure.runId, 'shopsphere', 'FUNCTIONAL_FAILURE');
+  const executionHref = await page.getByRole('link', { name: 'View execution' }).first().getAttribute('href');
+  if (!executionHref) throw new Error('Execution details link is unavailable');
+  await page.goto(`${baseURL}${executionHref}`, { waitUntil: 'networkidle' });
+  await capture('06-execution-details', executionHref);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseURL}/`, { waitUntil: 'networkidle' });
+  await capture('14-overview-mobile', '/');
+  await page.goto(`${baseURL}/pipeline-lab`, { waitUntil: 'networkidle' });
+  await capture('15-pipeline-lab-mobile', '/pipeline-lab');
 } finally {
   await context.close();
   await browser.close();

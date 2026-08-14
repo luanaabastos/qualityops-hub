@@ -29,6 +29,8 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await expect(page.getByText('mochawesome', { exact: true })).toBeVisible();
     await expect(page.getByText('Live demo run', { exact: true })).toBeVisible();
     await expect(page.getByText('adds an item to the cart', { exact: true })).toBeVisible();
+    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Pipeline metadata' }) });
+    await expect(metadata.getByRole('button', { name: 'Copy pipelineId' })).toBeVisible();
   });
 
   test('ShopSphere functional failure updates dashboard and regression delta', async ({ page }) => {
@@ -65,5 +67,80 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await expect(services).toContainText('Demo runners');
     await expect(services.getByText('ready', { exact: true })).toHaveCount(3);
     await expect(services.getByText('not configured', { exact: true })).toBeVisible();
+  });
+});
+
+test.describe('QualityOps Hub portfolio presentation', () => {
+  test('Coverage explains the demo model and keeps it separate from approval', async ({ page }) => {
+    await page.goto('/coverage');
+    await expect(page.getByRole('heading', { name: 'Automation Coverage' })).toBeVisible();
+    await expect(page.getByText('70%', { exact: true })).toBeVisible();
+    await expect(page.getByText('28 of 40 eligible scenarios')).toBeVisible();
+    await expect(page.getByText('Coverage is not approval.')).toBeVisible();
+    await expect(page.getByRole('progressbar')).toHaveCount(4);
+  });
+
+  test('Automation Plan filters representative scenarios and has an honest import roadmap', async ({ page }) => {
+    await page.goto('/automation-plan');
+    await expect(page.getByRole('heading', { name: 'Automation Plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Import CSV\/XLSX/ })).toBeDisabled();
+    await page.getByLabel('Product').selectOption('shopsphere');
+    await page.getByLabel('Status').selectOption('NOT_ELIGIBLE');
+    await expect(page.getByText('No scenarios match the selected filters.')).toBeVisible();
+    await page.getByLabel('Status').selectOption('AUTOMATED');
+    await expect(page.getByText('SS-001')).toBeVisible();
+  });
+
+  test('Integrations, Documentation and Video Evidence are complete demo views', async ({ page }) => {
+    await page.goto('/integrations');
+    await expect(page.getByRole('heading', { name: 'Integrations' })).toBeVisible();
+    await expect(page.getByText('Product token')).toHaveCount(3);
+    await expect(page.getByText('Authenticated ingestion')).toBeVisible();
+
+    await page.goto('/documentation');
+    await expect(page.getByRole('heading', { name: 'Documentation' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Report adapters' })).toBeVisible();
+    await expect(page.getByText('Troubleshooting', { exact: true })).toHaveCount(6);
+
+    await page.goto('/video-evidence');
+    await expect(page.getByRole('heading', { name: 'Video Evidence' })).toBeVisible();
+    await expect(page.getByText('DEMO PREVIEW', { exact: true })).toHaveCount(4);
+    await expect(page.getByText(/persistent object storage are planned/)).toBeVisible();
+  });
+
+  test('key routes do not create page-level horizontal overflow at required viewports', async ({ page }) => {
+    const viewports = [
+      { width: 1920, height: 1080 },
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 768, height: 1024 },
+      { width: 390, height: 844 },
+      { width: 320, height: 568 }
+    ];
+    const routes = ['/', '/pipeline-lab', '/coverage', '/integrations', '/automation-plan', '/video-evidence', '/documentation'];
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const route of routes) {
+        await page.goto(route);
+        await expect(page.getByRole('heading').first()).toBeVisible();
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+        expect(overflow, `${route} at ${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  test('execution pagination is bounded and the mobile drawer restores keyboard focus', async ({ page }) => {
+    await page.goto('/executions');
+    await expect(page.getByText(/Showing 1–10 of \d+/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const menu = page.getByRole('button', { name: 'Open navigation' });
+    await menu.focus();
+    await menu.press('Enter');
+    await expect(page.getByRole('dialog', { name: 'Sidebar navigation' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeFocused();
   });
 });
