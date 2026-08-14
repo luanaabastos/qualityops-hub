@@ -34,6 +34,9 @@ CI executes tests. QualityOps Hub receives the resulting report, validates it, n
 - Detects identical replays and conflicting content for the same pipeline identity.
 - Runs safe local or hosted demonstrations through an allow-listed Pipeline Lab.
 - Shows overview, history, execution details, freshness, and Regression Delta views.
+- Presents an explicit 28/40 fictional Automation Coverage model that is separate from execution approval.
+- Provides a filterable Automation Plan preview and live adapter status for each fictional product.
+- Includes concise in-app operating guides and an honest Video Evidence concept preview.
 
 ## Architecture
 
@@ -82,6 +85,16 @@ Pipeline Lab is the main interactive demonstration:
 10. Open ShopSphere to inspect Regression Delta.
 
 The API accepts enums only and maps them to fixed runner files. User input never becomes a command, executable, argument list, or filesystem path.
+
+## Portfolio views
+
+- **Overview** explains Quality Score, Approval Rate, Automation Coverage, and freshness without combining their meanings.
+- **Products and Executions** expose current outcomes, Regression Delta, bounded history, and copyable pipeline metadata.
+- **Coverage** uses an explicit fictional planning baseline: 28 automated scenarios out of 40 eligible scenarios.
+- **Automation Plan** provides representative, filterable scenario mappings; CSV/XLSX import remains planned.
+- **Integrations** connects each product to its runner, report format, adapter, authentication model, and latest ingestion.
+- **Documentation** provides concise in-app guides for automation, adapters, Pipeline Lab, and architecture.
+- **Video Evidence** is clearly labeled as a demo preview. File upload and persistent object storage are not implemented.
 
 ## Report adapters
 
@@ -199,7 +212,7 @@ Implemented capabilities and honest next milestones are tracked in [docs/roadmap
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real browser demo runners, evidence flow, and hosted-runtime contract are implemented. Creating hosting infrastructure remains a separate human-authorized action.
+The local application, database-backed ingestion, real browser demo runners, portfolio-ready product views, evidence flow, and hosted-runtime contract are implemented. Creating hosting infrastructure remains a separate human-authorized action.
 
 ## License
 

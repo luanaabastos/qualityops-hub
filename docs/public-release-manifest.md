@@ -1,6 +1,6 @@
-# Public release manifest
+# Public portfolio manifest
 
-This manifest records the sanitized and validated content commit immediately before this manifest-only update.
+This manifest preserves the initial sanitized public-release record and tracks the current portfolio readiness state.
 
 - Sanitized rewrite base HEAD: `cd7e89a19918f823bdd18ed74d68c4588b35df8b`
 - Audited release content HEAD: `1c315dab9fa6a73ca08f9a4a980bbc3a79a803e3`
@@ -14,7 +14,8 @@ This manifest records the sanitized and validated content commit immediately bef
 - Publication status: `PUBLICATION_APPROVAL_REQUIRED`
 - License: `MIT`
 - `LICENSE=MIT`
-- Remote: none
+- Repository: `https://github.com/luanaabastos/qualityops-hub`
+- Current product milestone: Checkpoint 7 portfolio polish
 
 The manifest commit changes HEAD by definition without changing the release facts above. The final HEAD is reported by `git rev-parse HEAD` after this file is committed.
 
@@ -39,10 +40,11 @@ No squash or remote operation was performed.
 | Frozen install | Passed | Lockfile current; no resolution drift |
 | Lint | Passed | All workspaces |
 | Typecheck | Passed | All workspaces |
-| Tests | Passed | 24 executed, 24 passed, 0 failed, 0 skipped |
+| Tests | Passed | 35 executed, 35 passed, 0 failed, 0 skipped |
 | Build | Passed | Shared, API, and Vite web build |
-| Playwright E2E | Passed | 4 executed, 4 passed, 0 failed, 0 skipped |
-| Demo lifecycle | Passed | Start, status, and stop succeeded |
+| Playwright E2E | Passed | 9 local and 6 production-like scenarios; 0 failed, 0 skipped |
+| Demo reset | Passed | Restored exactly 12 curated seeded executions |
+| Responsive matrix | Passed | 1920×1080 through 320×568 with no page-level overflow |
 
 ## Demo smoke
 
@@ -67,6 +69,8 @@ PocketWallet remained an explicit `MOBILE_HARNESS_DEMO` infrastructure failure w
 ## Public assets
 
 All five PNG files were visually inspected. They contain only the QualityOps Hub application UI: no editor, terminal, desktop, taskbar, browser profile, bookmarks, notification, real email, or personal path.
+
+Checkpoint 7 additionally generated and visually reviewed 15 ignored local evidence captures covering every primary route plus Overview and Pipeline Lab on mobile. Existing README screenshots remain unchanged pending an explicit decision to replace the curated public assets.
 
 | Asset | SHA-256 |
 |---|---|
@@ -94,9 +98,11 @@ All workflows use read-only repository permissions and bounded timeouts. They in
 - Object storage is not configured; raw reports remain ignored local artifacts.
 - Integration tokens require explicit rotation/revocation and have no automatic expiry.
 - PocketWallet is a deterministic Mobile Harness Demo, not a real device run.
-- Automation Coverage, Flaky Test Radar, Video Evidence, and hosted integrations are roadmap items.
+- Automation Coverage, Automation Plan, adapter status, and in-app documentation use explicit fictional demo models rather than external systems of record.
+- Video Evidence is a concept preview; upload and persistent object storage remain roadmap work.
+- Flaky Test Radar and remote GitHub ingestion remain roadmap work.
 - Registry-backed dependency advisory review remains necessary before a hosted deployment.
 
-## Publication boundary
+## Hosting boundary
 
-The technical public-release gate is complete. Creating a GitHub repository, adding a remote, or pushing remains prohibited until separate explicit human approval.
+The repository is public and the portfolio product gate is complete. Render, Neon, remote secrets, and public hosting have not been provisioned; those actions still require separate explicit human approval.

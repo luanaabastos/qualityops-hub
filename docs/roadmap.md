@@ -17,15 +17,21 @@ No milestone below carries a promised date.
 - MIT License and sanitized public Git identity
 - Public GitHub repository and protected validation workflow
 - Hosted single-service runtime contract, idempotent bootstrap, and production smoke suite
+- Portfolio-ready Coverage demo with an explicit 28/40 fictional automation baseline
+- Filterable Automation Plan preview and product integration status
+- In-app automation, adapter, Pipeline Lab, and architecture documentation
+- Clearly labeled Video Evidence concept preview without simulated persistence
+- Responsive route presentation, bounded execution pagination, and accessible status definitions
 - `LICENSE=MIT`
 
 ## Next
 
 - Human-authorized Render Web Service and Neon PostgreSQL provisioning, followed by hosted-demo deployment
-- Automation Coverage from a defined source of truth
 - Flaky Test Radar using longer execution history
-- Video evidence with explicit retention rules
+- CSV/XLSX Automation Plan import with validation and change review
+- Persistent video evidence with object storage and explicit retention rules
 - Richer, permission-scoped GitHub API integration
+- Advanced authentication and role-based access control
 - Distributed job execution, rate limiting, and production secret management
 
 ## Optional project governance
