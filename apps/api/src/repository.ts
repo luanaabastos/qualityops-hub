@@ -5,6 +5,7 @@ import {
   calculateFreshness,
   calculateQualityScore,
   calculateRegressionDelta,
+  demoAutomationCoverageSummary,
   fictionalProducts,
   type NormalizedExecution,
   type ProductKey
@@ -215,7 +216,7 @@ export class QualityRepository {
       products: products.length,
       productsWithRecentExecution: products.filter((product) => product.freshness === 'FRESH').length,
       productsStale: products.filter((product) => product.freshness !== 'FRESH').length,
-      automationCoverage: null,
+      automationCoverage: demoAutomationCoverageSummary.percentage,
       latestRegression: products.map((product) => product.lastExecutionAt as string | null).filter(Boolean).sort().at(-1) ?? null,
       productsSummary: products
     };

@@ -70,9 +70,9 @@ function seedExecution(productKey: ProductKey, sequence: number, status: 'PASSED
 
 export async function seedDemoHistory(database: Database, repository: QualityRepository): Promise<void> {
   const products: Array<{ key: ProductKey; runs: Array<[NormalizedExecution['status'], number]> }> = [
-    { key: 'shopsphere', runs: [['FAILED', 30], ['PASSED', 2]] },
-    { key: 'servicedesk', runs: [['PASSED', 80], ['FAILED', 40]] },
-    { key: 'pocketwallet', runs: [['ERROR', 28], ['PASSED', 1]] }
+    { key: 'shopsphere', runs: [['PASSED', 72], ['FAILED', 48], ['PASSED', 24], ['FAILED', 2]] },
+    { key: 'servicedesk', runs: [['FAILED', 64], ['PASSED', 44], ['FAILED', 30], ['PASSED', 20]] },
+    { key: 'pocketwallet', runs: [['ERROR', 48], ['PASSED', 24], ['ERROR', 10], ['PASSED', 1]] }
   ];
   for (const product of products) {
     const count = await database.pool.query<{ count: string }>(

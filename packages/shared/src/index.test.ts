@@ -4,7 +4,8 @@ import {
   calculateFreshness,
   calculateQualityScore,
   calculateRegressionDelta,
-  createStableTestKey
+  createStableTestKey,
+  demoAutomationCoverageSummary
 } from './index';
 
 describe('shared quality semantics', () => {
@@ -38,5 +39,14 @@ describe('shared quality semantics', () => {
     expect(calculateFreshness('2026-08-12T00:00:00.000Z', 24, now)).toBe('FRESH');
     expect(calculateFreshness('2026-08-11T00:00:00.000Z', 24, now)).toBe('STALE');
     expect(calculateFreshness('2026-08-09T00:00:00.000Z', 24, now)).toBe('OVERDUE');
+  });
+
+  it('keeps the fictional automation coverage dataset internally consistent', () => {
+    expect(demoAutomationCoverageSummary).toEqual({
+      eligible: 40,
+      automated: 28,
+      remaining: 12,
+      percentage: 70
+    });
   });
 });
