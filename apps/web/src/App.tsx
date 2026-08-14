@@ -26,6 +26,13 @@ import type {
   ProductSummary,
   RegressionDelta
 } from './types';
+import {
+  AutomationPlanPage,
+  CoveragePage,
+  DocumentationPage,
+  IntegrationsPage,
+  VideoEvidencePage
+} from './PortfolioPages';
 
 const menuItems = [
   { label: 'Overview', to: '/' },
@@ -69,6 +76,16 @@ function formatReport(value: string) {
   if (value === 'playwright-json-v1') return 'playwright-json-v1';
   if (value === 'mobile-e2e-json-v1') return 'mobile-e2e-json-v1';
   return value;
+}
+
+export function formatMetadataValue(key: string, value: string, origin: string) {
+  if (!key.toLowerCase().endsWith('url')) return value;
+  try {
+    const parsed = new URL(value);
+    return parsed.origin === origin ? `${parsed.pathname}${parsed.search}${parsed.hash}` : value;
+  } catch {
+    return value;
+  }
 }
 
 function PageHeader({
@@ -151,9 +168,22 @@ function OverviewPage() {
         <StatCard label="Products" value={String(dashboard.products)} subtitle="Monitored demo products" />
         <StatCard
           label="Automation Coverage"
-          value={dashboard.automationCoverage === null ? 'Coverage not configured' : `${dashboard.automationCoverage.toFixed(1)}%`}
-          subtitle="No fictional coverage is inferred"
+          value={dashboard.automationCoverage === null ? 'Not configured' : `${dashboard.automationCoverage.toFixed(1)}%`}
+          subtitle={dashboard.automationCoverage === null ? 'No eligible test plan is configured' : 'Automated / eligible demo scenarios'}
         />
+      </section>
+
+      <section className="explanation-strip" aria-label="Metric definitions">
+        <details>
+          <summary>How Quality Score works</summary>
+          <p><strong>Quality Score is not Approval Rate.</strong> It starts with passed / executed and subtracts 10 points per explicit infrastructure error, capped at a 30-point penalty. No execution produces no score.</p>
+        </details>
+        <div className="freshness-legend" aria-label="Freshness legend">
+          <strong>Freshness</strong>
+          <span><span className="pill fresh">Fresh</span> within target</span>
+          <span><span className="pill stale">Stale</span> up to twice the target</span>
+          <span><span className="pill overdue">Overdue</span> beyond twice the target</span>
+        </div>
       </section>
 
       <section className="panel" aria-labelledby="overview-products-title">
@@ -307,13 +337,13 @@ function ProductDetailPage() {
         <h2 id="product-summary-title">Execution summary</h2>
         <div className="metrics-grid">
           <div><span>Framework</span><strong>{product.framework}</strong></div>
-          <div><span>Report format</span><strong>{formatReport(product.reportFormat)}</strong></div>
-          <div><span>Branch</span><strong>{product.branch}</strong></div>
-          <div><span>Pipeline</span><strong>{product.pipeline}</strong></div>
-          <div><span>Commit</span><strong>{product.commit}</strong></div>
+          <div><span>Adapter</span><strong>{formatReport(product.reportFormat)}</strong></div>
+          <div><span>Latest result</span><strong>{product.executionStatus}</strong></div>
+          <div><span>Execution count</span><strong>{executions.length}</strong></div>
+          <div><span>Last run</span><strong>{formatDate(product.lastExecutionAt)}</strong></div>
           <div><span>Approval</span><strong>{formatApproval(product.approvalRate)}</strong></div>
           <div><span>Freshness</span><strong>{product.freshness}</strong></div>
-          <div><span>Latest outcome</span><strong>{product.executionStatus}</strong></div>
+          <div><span>Source</span><strong>{executions[0]?.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : executions[0]?.source ?? 'No execution'}</strong></div>
         </div>
       </section>
 
@@ -400,17 +430,20 @@ function ExecutionTable({
 }
 
 function ExecutionsPage() {
+  const pageSize = 10;
   const [items, setItems] = useState<Execution[] | null>(null);
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [filterProduct, setFilterProduct] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [page, setPage] = useState(1);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const load = () => fetchProducts()
       .then(async (payload) => {
         setProducts(payload.products);
-        setItems(await fetchAllExecutions(payload.products.map((product: ProductSummary) => product.key)));
+        const executions = await fetchAllExecutions(payload.products.map((product: ProductSummary) => product.key));
+        setItems(executions.sort((left: Execution, right: Execution) => Date.parse(right.date) - Date.parse(left.date)));
         setFailed(false);
       })
       .catch(() => setFailed(true));
@@ -425,6 +458,12 @@ function ExecutionsPage() {
     return productMatches && statusMatches;
   });
   const productNames = Object.fromEntries(products.map((product) => [product.key, product.name]));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const firstIndex = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize;
+  const visibleItems = filtered.slice(firstIndex, firstIndex + pageSize);
+  const rangeStart = filtered.length === 0 ? 0 : firstIndex + 1;
+  const rangeEnd = Math.min(firstIndex + pageSize, filtered.length);
 
   return (
     <>
@@ -437,13 +476,13 @@ function ExecutionsPage() {
 
         <div className="toolbar" aria-label="Execution filters">
           <label>Product
-            <select value={filterProduct} onChange={(event) => setFilterProduct(event.target.value)}>
+            <select value={filterProduct} onChange={(event) => { setFilterProduct(event.target.value); setPage(1); }}>
               <option value="all">All products</option>
               {products.map((product) => <option key={product.key} value={product.key}>{product.name}</option>)}
             </select>
           </label>
           <label>Status
-            <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
+            <select value={filterStatus} onChange={(event) => { setFilterStatus(event.target.value); setPage(1); }}>
               <option value="all">All statuses</option>
               <option value="PASSED">Passed</option><option value="FAILED">Failed</option>
               <option value="ERROR">Infrastructure error</option>
@@ -453,7 +492,17 @@ function ExecutionsPage() {
 
         {failed ? <Feedback error>Executions could not be loaded.</Feedback> : null}
         {!failed && items === null ? <Feedback>Loading executions…</Feedback> : null}
-        {items ? <ExecutionTable executions={filtered} productNames={productNames} /> : null}
+        {items ? <>
+          <ExecutionTable executions={visibleItems} productNames={productNames} />
+          <div className="pagination" aria-label="Execution history pagination">
+            <span aria-live="polite">Showing {rangeStart}–{rangeEnd} of {filtered.length}</span>
+            <div>
+              <button type="button" className="secondary-button" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Previous</button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button type="button" className="secondary-button" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Next</button>
+            </div>
+          </div>
+        </> : null}
       </section>
     </>
   );
@@ -500,6 +549,12 @@ type ExecutionDetailsModel = {
   }>;
 };
 
+const modeDescriptions = {
+  SUCCESS: 'All expected demo tests pass.',
+  FUNCTIONAL_FAILURE: 'One deterministic assertion fails.',
+  INFRASTRUCTURE_FAILURE: 'The runner fails before tests execute.'
+} as const;
+
 function PipelineLabPage() {
   const [product, setProduct] = useState<'shopsphere' | 'servicedesk' | 'pocketwallet'>('shopsphere');
   const [suite, setSuite] = useState<'SMOKE' | 'REGRESSION'>('REGRESSION');
@@ -532,9 +587,18 @@ function PipelineLabPage() {
     try {
       const payload = await createDemoRun({ product, suite, mode });
       setRun(payload.run);
-    } catch {
-      setError('Pipeline Lab is unavailable. Confirm the local demo flag and PostgreSQL service.');
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : '';
+      if (message.includes('capacity')) setError('Demo runner capacity reached. Wait for an active run to finish, then try again.');
+      else if (message.includes('limit')) setError('Rate limited. Wait briefly before starting another demo run.');
+      else setError('Pipeline Lab is unavailable. Confirm API and PostgreSQL readiness.');
     }
+  };
+
+  const reset = () => {
+    setRun(null);
+    setResult(null);
+    setError(null);
   };
 
   const progress = ['QUEUED', 'RUNNING', 'PROCESSING_REPORT', 'COMPLETED'];
@@ -555,6 +619,14 @@ function PipelineLabPage() {
           <label>Execution mode<select aria-label="Execution mode" value={mode} onChange={(event) => setMode(event.target.value as typeof mode)} disabled={busy}>
             <option value="SUCCESS">Success</option><option value="FUNCTIONAL_FAILURE">Functional failure</option><option value="INFRASTRUCTURE_FAILURE">Infrastructure failure</option>
           </select></label>
+          <div className="mode-guide" aria-label="Mode guidance">
+            {Object.entries(modeDescriptions).map(([value, description]) => (
+              <div className={mode === value ? 'selected' : ''} key={value}>
+                <strong>{value === 'SUCCESS' ? 'Success' : value === 'FUNCTIONAL_FAILURE' ? 'Functional Failure' : 'Infrastructure Failure'}</strong>
+                <span>{value === 'INFRASTRUCTURE_FAILURE' && product === 'pocketwallet' ? 'The mobile harness stops before tests execute.' : description}</span>
+              </div>
+            ))}
+          </div>
           <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Pipeline running…' : 'Run demo pipeline'}</button>
         </form>
         <div className="pipeline-progress" aria-live="polite">
@@ -572,15 +644,36 @@ function PipelineLabPage() {
           <div className="section-header"><h2 id="pipeline-result-title">Pipeline result</h2><span>{result.productName}</span></div>
           {result.status === 'ERROR' ? <div className="notice infrastructure-notice"><strong>Infrastructure error — tests did not execute</strong></div> : null}
           <div className="metrics-grid">
-            <div><span>Execution ID</span><strong>{result.id}</strong></div><div><span>Status</span><strong>{result.status}</strong></div>
+            <div><span>Product</span><strong>{result.productName}</strong></div><div><span>Suite</span><strong>{run?.suite ?? result.suiteType}</strong></div>
+            <div><span>Mode</span><strong>{run?.mode.replaceAll('_', ' ') ?? 'Demo run'}</strong></div><div><span>Status</span><strong>{result.status}</strong></div>
             <div><span>Executed</span><strong>{result.summary.executed}</strong></div><div><span>Passed</span><strong>{result.summary.passed}</strong></div>
             <div><span>Failed</span><strong>{result.summary.failed}</strong></div><div><span>Errors</span><strong>{result.summary.errors}</strong></div>
             <div><span>Duration</span><strong>{formatDuration(result.durationMs)}</strong></div>
           </div>
-          <NavLink className="primary-link" to={`/executions/${result.id}`}>View execution</NavLink>
+          <div className="result-actions">
+            <NavLink className="primary-link" to={`/executions/${result.id}`}>View execution</NavLink>
+            <button className="secondary-button" type="button" onClick={reset}>Run another demo</button>
+          </div>
         </section>
       ) : null}
     </>
+  );
+}
+
+function CopyableValue({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    if (!navigator.clipboard) return;
+    void navigator.clipboard.writeText(value).then(() => setCopied(true));
+  };
+  return (
+    <div className="metadata-entry">
+      <span>{label}</span>
+      <div className="metadata-line">
+        <code className="metadata-value" title={value}>{value}</code>
+        <button className="copy-button" type="button" aria-label={`Copy ${label}`} onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+      </div>
+    </div>
   );
 }
 
@@ -594,6 +687,7 @@ function ExecutionDetailsPage() {
   }, [executionId]);
   if (failed) return <Feedback error>Execution could not be loaded.</Feedback>;
   if (!execution) return <Feedback>Loading execution details…</Feedback>;
+  const copyableKeys = new Set(['commitSha', 'pipelineId', 'jobId']);
   return (
     <>
       <PageHeader eyebrow="Execution details" title={`${execution.productName} execution`} description={execution.id} status={execution.status} />
@@ -605,8 +699,14 @@ function ExecutionDetailsPage() {
         <div><span>Approval</span><strong>{formatApproval(execution.approvalRate)}</strong></div><div><span>Duration</span><strong>{formatDuration(execution.durationMs)}</strong></div>
       </div></section>
       <section className="panel"><h2>Pipeline metadata</h2><div className="metrics-grid">
-        {Object.entries(execution.pipeline).map(([key, value]) => <div key={key}><span>{key}</span><strong>{value ?? 'Not provided'}</strong></div>)}
-        <div><span>Source</span><strong>{execution.source}</strong></div><div><span>Origin</span><strong><span className={`origin-badge ${execution.origin === 'DEMO_PIPELINE' ? 'live' : 'seeded'}`}>{execution.origin === 'DEMO_PIPELINE' ? 'Live demo run' : 'Seeded demo history'}</span></strong></div>
+        {Object.entries(execution.pipeline).map(([key, value]) => {
+          if (!value) return <div key={key}><span>{key}</span><strong>Not provided</strong></div>;
+          const displayValue = formatMetadataValue(key, value, window.location.origin);
+          return copyableKeys.has(key) || key.toLowerCase().endsWith('url')
+            ? <CopyableValue key={key} label={key} value={displayValue} />
+            : <div key={key}><span>{key}</span><strong>{displayValue}</strong></div>;
+        })}
+        <div><span>Source</span><strong>{execution.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : execution.source}</strong></div><div><span>Origin</span><strong><span className={`origin-badge ${execution.origin === 'DEMO_PIPELINE' ? 'live' : 'seeded'}`}>{execution.origin === 'DEMO_PIPELINE' ? 'Live demo run' : 'Seeded demo history'}</span></strong></div>
         <div><span>Raw format</span><strong>{execution.reportFormat}</strong></div><div><span>Suite type</span><strong>{execution.suiteType}</strong></div>
       </div></section>
       <section className="panel"><h2>Regression delta</h2><div className="delta-grid">
@@ -647,7 +747,7 @@ function HowItWorksPage() {
         description="From a code change to a quality decision, in one traceable flow."
         demo={false}
       />
-      <section className="panel" aria-labelledby="flow-title">
+      <section className="panel flow-panel" aria-labelledby="flow-title">
         <h2 id="flow-title">From change to decision</h2>
         <ol className="flow-list" aria-label="QualityOps Hub processing flow">
           {flowSteps.map(([title, description], index) => (
@@ -686,7 +786,7 @@ function PlatformHealthPage() {
   const services = [
     { name: 'API', state: apiUnavailable ? 'unavailable' : health?.api ?? 'checking', detail: 'Fastify HTTP API' },
     { name: 'PostgreSQL', state: apiUnavailable ? 'unknown' : health?.database ?? 'checking', detail: 'Persistent execution history' },
-    { name: 'Object Storage', state: health?.objectStorage ?? 'not-configured', detail: 'Not used in this local milestone' },
+    { name: 'Object Storage', state: health?.objectStorage ?? 'not-configured', detail: 'Optional for the current portfolio preview' },
     { name: 'Demo runners', state: apiUnavailable ? 'unknown' : health?.backgroundJobs ?? 'checking', detail: 'Allow-listed local jobs' }
   ];
 
@@ -707,15 +807,6 @@ function PlatformHealthPage() {
           ))}
         </div>
       </section>
-    </>
-  );
-}
-
-function ComingSoonPage({ title }: { title: string }) {
-  return (
-    <>
-      <PageHeader eyebrow="Planned capability" title={title} demo={false} />
-      <section className="panel"><Feedback>Coming in next milestone</Feedback></section>
     </>
   );
 }
@@ -789,11 +880,11 @@ function AppShell() {
       <Route path="/products/:productKey" element={<ProductDetailPage />} />
       <Route path="/executions" element={<ExecutionsPage />} />
       <Route path="/executions/:executionId" element={<ExecutionDetailsPage />} />
-      <Route path="/coverage" element={<ComingSoonPage title="Coverage" />} />
-      <Route path="/integrations" element={<ComingSoonPage title="Integrations" />} />
-      <Route path="/automation-plan" element={<ComingSoonPage title="Automation Plan" />} />
-      <Route path="/video-evidence" element={<ComingSoonPage title="Video Evidence" />} />
-      <Route path="/documentation" element={<ComingSoonPage title="Documentation" />} />
+      <Route path="/coverage" element={<CoveragePage />} />
+      <Route path="/integrations" element={<IntegrationsPage />} />
+      <Route path="/automation-plan" element={<AutomationPlanPage />} />
+      <Route path="/video-evidence" element={<VideoEvidencePage />} />
+      <Route path="/documentation" element={<DocumentationPage />} />
       <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/platform-health" element={<PlatformHealthPage />} />
       <Route path="*" element={<NotFoundPage />} />

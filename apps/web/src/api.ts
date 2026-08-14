@@ -27,6 +27,9 @@ export async function createDemoRun(input: { product: ProductKey; suite: SuiteTy
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input)
   });
-  if (!response.ok) throw new Error('Demo run request failed');
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: 'Demo run request failed.' })) as { error?: string };
+    throw new Error(payload.error ?? 'Demo run request failed.');
+  }
   return response.json();
 }

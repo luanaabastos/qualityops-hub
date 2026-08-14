@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import App from './App';
+import App, { formatMetadataValue } from './App';
 
 describe('App shell', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('App shell', () => {
         products: 3,
         productsWithRecentExecution: 2,
         productsStale: 1,
-        automationCoverage: null,
+        automationCoverage: 70,
         latestRegression: '2026-08-11T21:45:00.000Z',
         productsSummary: [
           {
@@ -53,5 +53,13 @@ describe('App shell', () => {
   it('renders the QualityOps Hub heading', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: /QualityOps Hub/i })).toBeTruthy();
+  });
+
+  it('renders same-origin pipeline URLs as public-safe relative metadata', () => {
+    expect(formatMetadataValue('pipelineUrl', 'https://demo.example.test/api/demo/runs/123', 'https://demo.example.test'))
+      .toBe('/api/demo/runs/123');
+    expect(formatMetadataValue('pipelineUrl', 'https://ci.example.test/runs/123', 'https://demo.example.test'))
+      .toBe('https://ci.example.test/runs/123');
+    expect(formatMetadataValue('pipelineId', 'pipeline-123', 'https://demo.example.test')).toBe('pipeline-123');
   });
 });
