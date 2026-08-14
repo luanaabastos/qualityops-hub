@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadRuntimeConfig } from './config.js';
+import { Database } from './database.js';
 
 describe('hosted runtime configuration', () => {
   it('requires explicit public URLs and a strong system token in production', () => {
@@ -24,5 +25,12 @@ describe('hosted runtime configuration', () => {
     expect(config.allowedOrigins).toEqual([]);
     expect(config.port).toBe(4321);
     expect(config.serveWeb).toBe(true);
+  });
+
+  it('keeps certificate verification enabled for remote PostgreSQL TLS', async () => {
+    const database = new Database('postgresql://user:password@database.example/db?sslmode=require');
+    expect((database.pool as unknown as { options: { ssl: unknown } }).options.ssl)
+      .toEqual({ rejectUnauthorized: true });
+    await database.close();
   });
 });

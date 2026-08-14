@@ -4,13 +4,15 @@ Status: technically prepared; provisioning and deployment are not authorized.
 
 ## Architecture decision
 
-The hosted target is one Docker-based Render web service plus one managed PostgreSQL database. Fastify serves both the API and the compiled React/Vite assets from one origin. This is option B from the hosting review.
+The hosted target is one Docker-based Render Web Service plus one external Neon PostgreSQL database. Fastify serves both the API and the compiled React/Vite assets from one origin. Render owns the application runtime; Neon is the selected persistent datastore for this portfolio demo.
 
-One service is the smallest operational shape that preserves the existing product: it provides one public URL, removes production CORS from the normal path, keeps Pipeline Lab's internal ingestion call same-origin, and avoids coordinating separate frontend and API releases. The web application still uses relative `/api` requests in production. The container pins Node `20.20.1`, pnpm `10.34.5`, the frozen application dependencies, and the system/browser dependencies needed by real Cypress and Playwright runners. Railway remains a future alternative because the runtime contract is a standard OCI container, environment variables, and PostgreSQL; no application code calls a Render API.
+One web service is the smallest operational shape that preserves the existing product: it provides one public URL, removes production CORS from the normal path, keeps Pipeline Lab's internal ingestion call same-origin, and avoids coordinating separate frontend and API releases. The web application uses relative `/api` requests in production. The container pins Node `20.20.1`, pnpm `10.34.5`, the frozen application dependencies, and the system/browser dependencies needed by real Cypress and Playwright runners.
+
+The database contract remains standard PostgreSQL through `DATABASE_URL`. Application code does not call the Render API, Neon API, Supabase API, or a provider-specific database SDK, and no Neon project ID appears in source. The same OCI image can run with any compatible PostgreSQL provider.
 
 ## Deployment boundary
 
-`render.yaml` is a dormant plan. It does not provision anything by itself. `autoDeployTrigger: off` prevents a linked service from deploying on ordinary pushes. A human must review provider pricing and free-tier availability, create or sync the Blueprint, enter pending values, and explicitly deploy.
+`render.yaml` is a dormant Web Service plan. It declares no Render database and does not provision anything by itself. `autoDeployTrigger: off` prevents a linked service from deploying on ordinary pushes. A human must review Render and Neon pricing/free-tier limits, create the two resources in a separately authorized step, enter pending values, and explicitly deploy.
 
 The planned sequence is:
 
@@ -18,41 +20,58 @@ The planned sequence is:
 2. start: `node scripts/start-production.mjs` in the container (the same lifecycle exposed locally as `pnpm start`) runs the ordered SQL migration deploy and idempotent demo bootstrap;
 3. application: the same command starts compiled Fastify, which serves `apps/web/dist` and binds `HOST`/`PORT`.
 
-The Docker runtime is required because Render's native Node image does not promise the browser binaries and Linux libraries needed by Pipeline Lab. The image runs browsers as the unprivileged `node` user. Render's pre-deploy command is not used in the free plan because it is a paid-service feature. The start wrapper gives the free plan the required build -> migrate/bootstrap -> application ordering. Migration and bootstrap are safe to repeat. A future paid service may move `pnpm migrate:deploy && pnpm bootstrap:demo` into a provider pre-deploy command without changing application semantics.
+The Docker runtime is required because Render's native Node image does not promise the browser binaries and Linux libraries needed by Pipeline Lab. The image runs browsers as the unprivileged `node` user. Render's pre-deploy command is not used in the free plan because it is a paid-service feature. The start wrapper gives the free plan the required build -> migrate/bootstrap -> application ordering. Migration and bootstrap are safe to repeat. A future paid service may move `pnpm migrate:deploy && pnpm bootstrap:demo` into a provider pre-deploy command without changing application semantics. Production never runs `prisma migrate dev` and no deploy path resets the database.
 
 ## Environment variables
 
-| Variable | Secret | Source |
-|---|---:|---|
-| `NODE_VERSION` | No | Blueprint documentation; Docker base is exact `20.20.1` |
-| `NODE_ENV` | No | Blueprint/provider, `production` |
-| `HOST` | No | Optional provider value; default `0.0.0.0` |
-| `PORT` | No | Provider runtime |
-| `DATABASE_URL` | Yes | Managed PostgreSQL `connectionString` reference |
-| `DATABASE_SSL_MODE` | No | `disable` for same-region private URL; `require` when TLS is required |
-| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No | Default `true`; never disable without an explicit certificate reason |
-| `PUBLIC_APP_URL` | No | Exact final HTTPS URL entered at provisioning |
-| `API_BASE_URL` | No | Optional; defaults to `PUBLIC_APP_URL` in production |
-| `DEMO_PIPELINE_LAB_ENABLED` | No | Blueprint feature flag |
-| `DEMO_SYSTEM_TOKEN` | Yes | New high-entropy provider secret entered at provisioning |
-| `DEMO_MAX_CONCURRENT_RUNS` | No | Blueprint, default `2` |
-| `DEMO_RATE_LIMIT_MAX` | No | Blueprint, default `4` |
-| `DEMO_RATE_LIMIT_WINDOW_MS` | No | Blueprint, default `60000` |
-| `DEMO_RUN_COOLDOWN_MS` | No | Blueprint, default `10000` |
-| `DEMO_RUN_TIMEOUT_MS` | No | Blueprint, default `120000` |
-| `QUALITYOPS_ALLOWED_ORIGINS` | No | Leave unset for same-origin production |
+| Variable | Required | Secret | Source |
+|---|---:|---:|---|
+| `NODE_ENV` | Yes | No | Blueprint, fixed to `production` |
+| `DATABASE_URL` | Yes | Yes | Exact Neon PostgreSQL connection string, entered in Render only after Neon provisioning |
+| `PUBLIC_APP_URL` | Yes | No | Exact Render HTTPS URL, entered after the Web Service receives its public URL |
+| `API_BASE_URL` | No | No | Omit for same-origin; production defaults it to `PUBLIC_APP_URL` |
+| `DEMO_PIPELINE_LAB_ENABLED` | Yes | No | Blueprint feature flag |
+| `DEMO_SYSTEM_TOKEN` | Yes | Yes | New high-entropy secret generated only in Render during provisioning |
+| `DEMO_MAX_CONCURRENT_RUNS` | Yes | No | Blueprint, `2` |
+| `DEMO_RUN_TIMEOUT_MS` | Yes | No | Blueprint, `120000` |
+| `DEMO_RUN_COOLDOWN_MS` | Yes | No | Blueprint, `10000` |
+| `DEMO_RATE_LIMIT_MAX` | Yes | No | Blueprint, `4` |
+| `DEMO_RATE_LIMIT_WINDOW_MS` | Yes | No | Blueprint, `60000` |
+| `HOST` | No | No | Application default, `0.0.0.0` |
+| `PORT` | Yes | No | Render runtime; never hardcoded by the application |
+| `DATABASE_POOL_MAX` | No | No | Application default, conservative maximum of `8` connections for one instance |
+| `DATABASE_SSL_MODE` | No | No | Normally omit so the provider connection string controls `sslmode` |
+| `QUALITYOPS_ALLOWED_ORIGINS` | No | No | Leave unset for same-origin production |
 
-No value for a real database or system token belongs in Git, a workflow, logs, screenshots, or frontend assets. The system credential is only used by the server-side Pipeline Lab ingestion call. It is not generated during build, stored in PostgreSQL, included in responses, or forwarded to child processes.
+No value for a real database or system token belongs in Git, a workflow, logs, screenshots, frontend assets, or Docker build arguments. The system credential is generated only as a Render secret during authorized provisioning and is used only by the server-side Pipeline Lab ingestion call. It is not an integration token, is not generated during build, stored in PostgreSQL, included in responses, or forwarded to child processes.
+
+## Public URL bootstrap
+
+The final `onrender.com` URL does not exist yet and no fictional value is versioned. The authorized provisioning procedure is:
+
+1. create the Render Web Service with auto-deploy disabled;
+2. record the exact HTTPS URL assigned by Render;
+3. configure `PUBLIC_APP_URL` with that URL;
+4. leave `API_BASE_URL` unset for the same-origin architecture (set it to the same exact URL only if an operational check proves it necessary);
+5. configure the remaining required environment values and secrets;
+6. trigger one manual deploy;
+7. validate `/api/health`, `/api/readiness`, the UI, and Pipeline Lab.
+
+The first deploy is not considered valid until the exact public URL is configured. After initial public homologation, `checksPass` may be evaluated as a separate change; commit-triggered auto-deploy remains disabled for the first release.
 
 ## Database, migrations and bootstrap
 
-`DATABASE_URL` is mandatory in production. The PostgreSQL driver supports provider-required TLS via `DATABASE_SSL_MODE=require`; certificate verification remains enabled by default. The planned same-region Render service uses the database's private `connectionString`, so the Blueprint selects `disable` for that private connection and blocks all public database ingress.
+`DATABASE_URL` is mandatory in production. Use the exact Neon connection string supplied at provisioning, including its TLS parameters. The PostgreSQL driver reads `sslmode` from that URL; certificate verification remains enabled, global TLS verification is never disabled, and the Blueprint does not override Neon TLS with `disable`.
+
+The planned single Render instance uses the direct PostgreSQL connection string and the existing small application pool (`DATABASE_POOL_MAX=8` by default). This milestone does not add PgBouncer or a Neon pooled hostname. A pooled connection can be evaluated only if observed connection pressure justifies its transaction-mode tradeoffs.
 
 The project uses an ordered, transactional SQL migration runner equivalent to a production migration-deploy command. `pnpm migrate:deploy` creates `schema_migrations`, applies each unapplied file from `prisma/migrations`, and never runs a development migration command.
 
 `pnpm bootstrap:demo` upserts exactly the three fictional products and adds the minimum synthetic history only when a product has no execution. It is idempotent, does not truncate tables, does not delete visitor executions, and does not create or rotate ingestion tokens. This is separate from `pnpm demo:reset`, which remains a guarded local-only operator command and has no HTTP route.
 
-PostgreSQL is the source of truth for products, executions, suites, cases, pipeline metadata, deltas, demo job state, and token hashes. A second startup can safely rerun migrations and bootstrap. Incomplete jobs from an interrupted instance restart are marked failed with a sanitized explanation.
+PostgreSQL is the source of truth for products, executions, suites, cases, pipeline metadata, deltas, demo job state, and token hashes. On a new database, bootstrap creates the three fictional products and their minimum demo history. A second startup safely reruns migrations and bootstrap without duplicating products, deleting public executions, recreating tokens, or resetting history. Incomplete jobs from an interrupted instance restart are marked failed with a sanitized explanation.
+
+Neon can suspend idle compute and reactivate it on demand, so the first database operation after inactivity may have additional latency. The application keeps connection counts conservative and does not send artificial keep-alive traffic to defeat autosuspend.
 
 ## Pipeline Lab security
 
@@ -82,7 +101,7 @@ Responses add CSP, `X-Content-Type-Options`, `X-Frame-Options`, referrer, and pe
 
 ## Ephemeral filesystem
 
-Raw runner reports, normalized snapshots, metadata files, logs, screenshots, and videos under `artifacts/` are disposable. The dashboard and execution details read normalized PostgreSQL rows and remain functional after local artifacts disappear. Object storage is not required for the first hosted demo. A future milestone may store raw reports, video evidence, and large artifacts in S3-compatible storage.
+Raw runner reports, normalized snapshots, metadata files, logs, screenshots, and videos under `artifacts/` are disposable. Render may discard them on restart, redeploy, or idle spin-down. The dashboard and execution details read normalized PostgreSQL rows, not the artifact files, and remain functional after those files disappear. Existing ingestion/integration and production-like tests prove that execution details are reconstructed from persisted database rows. Object storage is not required for the first hosted demo. A future milestone may store raw reports, video evidence, and large artifacts in S3-compatible storage.
 
 ## Production verification
 
@@ -94,7 +113,7 @@ An empty-database rehearsal must create a dedicated disposable PostgreSQL databa
 
 Rollback means selecting the previous known-good application deploy while keeping migrations backward-compatible with that version. Destructive or incompatible migrations require a separately reviewed expand/migrate/contract plan; they must not be coupled to a routine rollback.
 
-Managed PostgreSQL is the persistent source. Provider-managed backups should be enabled before treating the demo as durable. Render's current free PostgreSQL offering expires after 30 days and has no backups, so it is evaluation-only. Moving to a paid database or any backup-bearing plan requires separate cost approval. No application-level backup system is implemented in this checkpoint.
+Neon PostgreSQL is the selected persistent datastore for the demo; Render's filesystem is not persistence. This is still a **Portfolio Preview**, not declared production infrastructure or an SLA-backed service. Free-plan quotas, restore windows, autosuspend behavior, and pricing must be reviewed again during provisioning. Moving to any paid plan or adding a backup-bearing service requires separate cost approval. No application-level backup system is implemented in this checkpoint.
 
 ## Known limitations
 
@@ -102,15 +121,21 @@ Managed PostgreSQL is the persistent source. Provider-managed backups should be 
 - ephemeral raw artifacts and browser evidence;
 - synthetic products and executions only; PocketWallet is `MOBILE_HARNESS_DEMO`, not a device run;
 - no accounts, visitor PII, analytics, tracking, autoscaling, or custom domain;
-- free services can sleep and the free database is temporary and unbacked;
+- the free Render Web Service can spin down after inactivity, and Neon compute can autosuspend; the next request may have a short cold start;
+- no keep-alive cron, synthetic ping, or other mechanism attempts to bypass free-tier sleep;
+- Neon free-plan storage, compute, transfer, and restore limits apply and may change before provisioning;
 - provider provisioning, secret entry, deployment, and billing review remain human actions.
 
 ## Provider references
 
 - [Render Blueprint YAML reference](https://render.com/docs/blueprint-spec)
 - [Render deploy lifecycle](https://render.com/docs/deploys)
-- [Render Node version selection](https://render.com/docs/node-version)
-- [Render PostgreSQL connectivity](https://render.com/docs/postgresql-creating-connecting)
+- [Render Web Service port binding](https://render.com/docs/web-services#port-binding)
+- [Render health checks](https://render.com/docs/health-checks)
 - [Render free-tier limitations](https://render.com/docs/free)
+- [Neon connection guidance](https://neon.com/docs/connect/connection-errors)
+- [Neon compute lifecycle and scale to zero](https://neon.com/docs/manage/endpoints)
+- [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
+- [Neon plans and current limits](https://neon.com/pricing)
 - [Playwright browser installation](https://playwright.dev/docs/browsers)
 - [Cypress Linux prerequisites](https://docs.cypress.io/app/get-started/install-cypress)

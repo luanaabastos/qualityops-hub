@@ -21,7 +21,7 @@ No milestone below carries a promised date.
 
 ## Next
 
-- Human-authorized Render provisioning and hosted-demo deployment
+- Human-authorized Render Web Service and Neon PostgreSQL provisioning, followed by hosted-demo deployment
 - Automation Coverage from a defined source of truth
 - Flaky Test Radar using longer execution history
 - Video evidence with explicit retention rules

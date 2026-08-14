@@ -20,7 +20,7 @@ function sslOptions(value: string): pg.PoolConfig['ssl'] {
   const fromUrl = new URL(value).searchParams.get('sslmode');
   const mode = configured ?? fromUrl ?? 'disable';
   if (mode === 'disable') return undefined;
-  return { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' };
+  return { rejectUnauthorized: true };
 }
 
 export class Database {
