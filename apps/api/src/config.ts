@@ -17,6 +17,16 @@ export type RuntimeConfig = {
   demoRunCooldownMs: number;
 };
 
+export class RuntimeConfigError extends Error {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'RuntimeConfigError';
+  }
+}
+
 function integer(value: string | undefined, fallback: number, minimum: number, maximum: number): number {
   const parsed = Number(value ?? fallback);
   return Number.isInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : fallback;
@@ -28,7 +38,7 @@ function normalizedUrl(name: string, value: string): string {
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported protocol');
     return parsed.toString().replace(/\/$/, '');
   } catch {
-    throw new Error(`${name} must be an absolute HTTP(S) URL.`);
+    throw new RuntimeConfigError(`${name}_INVALID`, `${name} must be an absolute HTTP(S) URL.`);
   }
 }
 
@@ -39,9 +49,13 @@ export function loadRuntimeConfig(
   const production = overrides.production ?? env.NODE_ENV === 'production';
   const demoEnabled = overrides.demoEnabled ?? env.DEMO_PIPELINE_LAB_ENABLED === 'true';
   const serveWeb = overrides.serveWeb ?? production;
+  const configuredPublicAppUrl = overrides.publicAppUrl ?? env.PUBLIC_APP_URL;
+  if (production && !configuredPublicAppUrl) {
+    throw new RuntimeConfigError('PUBLIC_APP_URL_REQUIRED', 'PUBLIC_APP_URL is required in production.');
+  }
   const publicAppUrl = overrides.publicAppUrl ?? normalizedUrl(
     'PUBLIC_APP_URL',
-    env.PUBLIC_APP_URL ?? (production ? '' : 'http://127.0.0.1:5173')
+    configuredPublicAppUrl ?? 'http://127.0.0.1:5173'
   );
   const apiBaseUrl = overrides.apiBaseUrl ?? normalizedUrl(
     'API_BASE_URL',
@@ -49,7 +63,10 @@ export function loadRuntimeConfig(
   );
   const configuredSystemToken = overrides.demoSystemToken ?? env.DEMO_SYSTEM_TOKEN;
   if (production && demoEnabled && (!configuredSystemToken || configuredSystemToken.length < 32)) {
-    throw new Error('DEMO_SYSTEM_TOKEN must contain at least 32 characters when the hosted Pipeline Lab is enabled.');
+    throw new RuntimeConfigError(
+      'DEMO_SYSTEM_TOKEN_INVALID',
+      'DEMO_SYSTEM_TOKEN must contain at least 32 characters when the hosted Pipeline Lab is enabled.'
+    );
   }
   const defaultOrigins = production ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173'];
   const configuredOrigins = env.QUALITYOPS_ALLOWED_ORIGINS

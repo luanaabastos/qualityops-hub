@@ -8,7 +8,7 @@ import fastifyStatic from '@fastify/static';
 import { ZodError } from 'zod';
 import { demoRunRequestSchema, productKeySchema, reportIngestionSchema } from '@qualityops-hub/shared';
 import { bootstrapDemo } from './bootstrap.js';
-import { loadRuntimeConfig, type RuntimeConfig } from './config.js';
+import { loadRuntimeConfig, RuntimeConfigError, type RuntimeConfig } from './config.js';
 import { Database, repositoryRoot } from './database.js';
 import { DemoJobService, type DemoJobController } from './demo-jobs.js';
 import { DemoCapacityError, DemoRequestLimiter } from './demo-protection.js';
@@ -25,6 +25,31 @@ type BuildOptions = {
   demoJobs?: DemoJobController;
   config?: Partial<RuntimeConfig>;
 };
+
+type StartupPhase = 'config_validation' | 'application_build' | 'listen';
+
+const safeStartupMessages: Record<string, string> = {
+  EACCES: 'Server binding was denied.',
+  EADDRINUSE: 'Server address is already in use.',
+  ECONNREFUSED: 'A required dependency refused the connection.',
+  ENOENT: 'A required startup file was not found.'
+};
+
+export function startupFailureLogLine(error: unknown, phase: StartupPhase): string {
+  const candidate = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const candidateName = error instanceof Error ? error.name : 'Error';
+  const errorName = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(candidateName) ? candidateName : 'Error';
+  const candidateCode = typeof candidate.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(candidate.code)
+    ? candidate.code
+    : null;
+  const errorCode = error instanceof RuntimeConfigError
+    ? error.code
+    : candidateCode ?? 'STARTUP_ERROR';
+  const message = error instanceof RuntimeConfigError
+    ? error.message
+    : safeStartupMessages[errorCode] ?? 'Application startup failed.';
+  return JSON.stringify({ event: 'server_start_failed', phase, errorName, errorCode, message });
+}
 
 function secureEqual(candidate: string, expected: string): boolean {
   const candidateHash = createHash('sha256').update(candidate).digest();
@@ -229,9 +254,12 @@ const isMainModule = process.argv[1]
   : false;
 
 if (isMainModule) {
+  let startupPhase: StartupPhase = 'config_validation';
   try {
     const config = loadRuntimeConfig();
+    startupPhase = 'application_build';
     const app = await buildApp({ config });
+    startupPhase = 'listen';
     const address = await app.listen({ port: config.port, host: config.host });
     app.log.info({ event: 'server_started', address, port: config.port, host: config.host });
     if (!config.production) console.log(`API listening on ${address}`);
@@ -244,8 +272,8 @@ if (isMainModule) {
     };
     process.once('SIGINT', () => void shutdown('SIGINT'));
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
-  } catch {
-    console.error(JSON.stringify({ event: 'server_start_failed', error: 'Application startup failed.' }));
+  } catch (error) {
+    console.error(startupFailureLogLine(error, startupPhase));
     process.exit(1);
   }
 }
