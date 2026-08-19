@@ -6,7 +6,7 @@ import type { DemoRun } from './types';
 function demoRun(state: DemoRun['state'], executionId: string | null = null): DemoRun {
   return {
     runId: 'run-1', product: 'shopsphere', suite: 'REGRESSION', mode: 'SUCCESS', state,
-    progressMessage: state, executionId, error: null
+    progressMessage: state, executionId, runnerMode: 'local', previewStatus: null, error: null
   };
 }
 

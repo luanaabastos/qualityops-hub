@@ -6,6 +6,7 @@ import { type DemoMode, type ProductKey, type SuiteType } from '@qualityops-hub/
 import { repositoryRoot } from './database.js';
 import { DemoCapacityError, DemoConcurrencyLimiter } from './demo-protection.js';
 import type { QualityRepository } from './repository.js';
+import type { DemoRunnerMode } from './config.js';
 import { sanitizeDiagnostic } from './adapters/helpers.js';
 
 const runnerFiles: Record<ProductKey, string> = {
@@ -38,6 +39,11 @@ type DemoJobLog = {
 export type DemoJobController = {
   initialize(): Promise<void>;
   enqueue(input: DemoJobInput): Promise<Record<string, unknown>>;
+};
+
+export type HostedPreviewOptions = {
+  transitionDelayMs?: number;
+  log?: (record: DemoJobLog) => void;
 };
 
 type DemoJobOptions = {
@@ -105,7 +111,13 @@ export class DemoJobService implements DemoJobController {
     try {
       await fs.mkdir(artifactDirectory, { recursive: true });
       const publicArtifactPath = path.posix.join('artifacts', 'demo-runs', runId);
-      await this.repository.createDemoRun({ id: runId, ...input, artifactPath: publicArtifactPath });
+      await this.repository.createDemoRun({
+        id: runId,
+        ...input,
+        artifactPath: publicArtifactPath,
+        runnerMode: 'local',
+        previewStatus: null
+      });
       setImmediate(() => void this.execute(runId, input, artifactDirectory, release));
       this.options.log?.({ event: 'demo_queued', runId, product: input.product, status: 'QUEUED' });
       return (await this.repository.getDemoRun(runId))!;
@@ -244,4 +256,75 @@ export class DemoJobService implements DemoJobController {
       });
     });
   }
+}
+
+export class HostedPreviewJobService implements DemoJobController {
+  private readonly transitionDelayMs: number;
+
+  constructor(
+    private readonly repository: QualityRepository,
+    private readonly options: HostedPreviewOptions = {}
+  ) {
+    this.transitionDelayMs = options.transitionDelayMs ?? 1_250;
+  }
+
+  async initialize(): Promise<void> {
+    await this.repository.failInterruptedDemoRuns();
+  }
+
+  async enqueue(input: DemoJobInput): Promise<Record<string, unknown>> {
+    const runId = randomUUID();
+    await this.repository.createDemoRun({
+      id: runId,
+      ...input,
+      artifactPath: path.posix.join('preview', 'external-ci-pending', runId),
+      runnerMode: 'hosted-preview',
+      previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING'
+    });
+    setImmediate(() => void this.advance(runId, input));
+    this.options.log?.({ event: 'demo_preview_queued', runId, product: input.product, status: 'QUEUED' });
+    return (await this.repository.getDemoRun(runId))!;
+  }
+
+  private async advance(runId: string, input: DemoJobInput): Promise<void> {
+    try {
+      await this.repository.updateDemoRun(runId, {
+        state: 'RUNNING',
+        message: 'Hosted portfolio preview running without a local browser process'
+      });
+      await this.wait();
+      await this.repository.updateDemoRun(runId, {
+        state: 'PROCESSING_REPORT',
+        message: 'Previewing the external report normalization boundary; no report was created'
+      });
+      await this.wait();
+      await this.repository.updateDemoRun(runId, {
+        state: 'COMPLETED',
+        message: 'External CI integration pending; no official execution was created'
+      });
+      this.options.log?.({ event: 'demo_preview_completed', runId, product: input.product, status: 'COMPLETED' });
+    } catch {
+      await this.repository.updateDemoRun(runId, {
+        state: 'FAILED',
+        message: 'Hosted portfolio preview failed',
+        error: 'Unable to complete the hosted portfolio preview.'
+      }).catch(() => undefined);
+    }
+  }
+
+  private async wait(): Promise<void> {
+    if (this.transitionDelayMs === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, this.transitionDelayMs));
+  }
+}
+
+export function createDemoJobController(
+  mode: DemoRunnerMode,
+  repository: QualityRepository,
+  localFactory: () => DemoJobController,
+  previewOptions?: HostedPreviewOptions
+): DemoJobController {
+  return mode === 'hosted-preview'
+    ? new HostedPreviewJobService(repository, previewOptions)
+    : localFactory();
 }

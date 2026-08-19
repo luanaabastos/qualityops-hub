@@ -9,7 +9,13 @@ describe('hosted runtime configuration', () => {
     expect(() => loadRuntimeConfig({
       NODE_ENV: 'production',
       PUBLIC_APP_URL: 'https://qualityops.example',
+      DEMO_PIPELINE_LAB_ENABLED: 'true'
+    })).toThrow('DEMO_RUNNER_MODE');
+    expect(() => loadRuntimeConfig({
+      NODE_ENV: 'production',
+      PUBLIC_APP_URL: 'https://qualityops.example',
       DEMO_PIPELINE_LAB_ENABLED: 'true',
+      DEMO_RUNNER_MODE: 'local',
       DEMO_SYSTEM_TOKEN: 'too-short'
     })).toThrow('DEMO_SYSTEM_TOKEN');
   });
@@ -19,6 +25,7 @@ describe('hosted runtime configuration', () => {
       NODE_ENV: 'production',
       PUBLIC_APP_URL: 'https://qualityops.example',
       DEMO_PIPELINE_LAB_ENABLED: 'true',
+      DEMO_RUNNER_MODE: 'local',
       DEMO_SYSTEM_TOKEN: 'a'.repeat(32),
       PORT: '4321'
     });
@@ -27,6 +34,27 @@ describe('hosted runtime configuration', () => {
     expect(config.host).toBe('0.0.0.0');
     expect(config.port).toBe(4321);
     expect(config.serveWeb).toBe(true);
+    expect(config.demoRunnerMode).toBe('local');
+  });
+
+  it('allows the hosted preview without a browser-runner credential', () => {
+    const config = loadRuntimeConfig({
+      NODE_ENV: 'production',
+      PUBLIC_APP_URL: 'https://qualityops.example',
+      DEMO_PIPELINE_LAB_ENABLED: 'true',
+      DEMO_RUNNER_MODE: 'hosted-preview'
+    });
+    expect(config.demoRunnerMode).toBe('hosted-preview');
+    expect(config.demoSystemToken.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it('rejects an unknown demo runner mode', () => {
+    expect(() => loadRuntimeConfig({
+      NODE_ENV: 'production',
+      PUBLIC_APP_URL: 'https://qualityops.example',
+      DEMO_PIPELINE_LAB_ENABLED: 'true',
+      DEMO_RUNNER_MODE: 'browser-magic'
+    })).toThrow('DEMO_RUNNER_MODE must be local or hosted-preview.');
   });
 
   it('uses an explicit external host and provider port', () => {

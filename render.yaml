@@ -21,8 +21,8 @@ services:
         sync: false
       - key: DEMO_PIPELINE_LAB_ENABLED
         value: "true"
-      - key: DEMO_SYSTEM_TOKEN
-        generateValue: true
+      - key: DEMO_RUNNER_MODE
+        value: "hosted-preview"
       - key: DEMO_MAX_CONCURRENT_RUNS
         value: "2"
       - key: DEMO_RATE_LIMIT_MAX

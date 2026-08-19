@@ -92,7 +92,7 @@ export function buildExecution(
     productKey: context.productKey,
     reportFormat: context.reportFormat,
     source: context.source,
-    origin: 'DEMO_PIPELINE',
+    origin: context.source === 'GITHUB_ACTIONS' ? 'EXTERNAL_CI' : 'DEMO_PIPELINE',
     suiteType: context.suiteType,
     status,
     branch: context.branch,

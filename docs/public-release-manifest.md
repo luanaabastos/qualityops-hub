@@ -87,11 +87,11 @@ Checkpoint 7 additionally generated and visually reviewed 15 ignored local evide
 - `demo-servicedesk.yml`: Playwright and versioned JSON artifact generation.
 - `demo-pocketwallet.yml`: Mobile Harness Demo JSON artifact generation.
 
-All workflows use read-only repository permissions and bounded timeouts. They intentionally do not attempt remote ingestion before a public API exists.
+All workflows use read-only repository permissions and bounded timeouts. External-CI ingestion is not configured yet and remains a separately authorized milestone.
 
 ## Known limitations
 
-- Hosted-runtime configuration is prepared, but no hosted endpoint or provider resource exists.
+- The hosted free-tier service provides a labeled flow preview and intentionally does not execute Cypress or Playwright.
 - In-process jobs have no distributed queue or cross-instance recovery.
 - Pipeline Lab has a bounded in-process request limiter; no distributed rate limiter is implemented.
 - No user accounts, roles, tenant boundaries, or audit-log service.
@@ -101,8 +101,8 @@ All workflows use read-only repository permissions and bounded timeouts. They in
 - Automation Coverage, Automation Plan, adapter status, and in-app documentation use explicit fictional demo models rather than external systems of record.
 - Video Evidence is a concept preview; upload and persistent object storage remain roadmap work.
 - Flaky Test Radar and remote GitHub ingestion remain roadmap work.
-- Registry-backed dependency advisory review remains necessary before a hosted deployment.
+- Registry-backed dependency advisory review remains part of ongoing maintenance.
 
 ## Hosting boundary
 
-The repository is public and the portfolio product gate is complete. Render, Neon, remote secrets, and public hosting have not been provisioned; those actions still require separate explicit human approval.
+The repository and hosted Render/Neon portfolio demo are public. Automatic deployment remains disabled. External-CI ingestion, repository secrets, hosted integration tokens, and any paid resource require separate explicit human approval.

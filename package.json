@@ -20,6 +20,7 @@
     "typecheck": "node scripts/workspace-run.mjs typecheck",
     "test": "node scripts/workspace-run.mjs test",
     "test:e2e": "playwright test",
+    "test:hosted-preview": "playwright test --config=playwright.hosted-preview.config.ts",
     "migrate:deploy": "node apps/api/dist/migrate.js",
     "bootstrap:demo": "node apps/api/dist/bootstrap.js",
     "start": "node scripts/start-production.mjs",

@@ -1,6 +1,6 @@
 # Public release checklist
 
-Checkpoint 5B closed the technical release gate, and the initial GitHub publication was subsequently authorized and completed. Checkpoint 7 adds the portfolio product-readiness review without authorizing hosting.
+Checkpoint 5B closed the technical release gate, the initial GitHub publication was authorized, and the Render/Neon portfolio demo was subsequently deployed. External-CI ingestion is not configured.
 
 - [x] README final
 - [x] Local demo works
@@ -19,8 +19,10 @@ Checkpoint 5B closed the technical release gate, and the initial GitHub publicat
 - [x] License MIT
 - [x] `LICENSE=MIT`
 - [x] Initial GitHub publication explicitly approved and completed
-- [ ] Render/Neon provisioning explicitly approved
+- [x] Render/Neon portfolio deployment explicitly approved and completed
+- [x] Hosted mode clearly separated from real local browser runners
+- [ ] External-CI ingestion and repository secrets separately approved
 
 `PUBLIC_RELEASE_READY`
 
-`HOSTING_PROVISIONING_APPROVAL_REQUIRED`
+`EXTERNAL_CI_INTEGRATION_PENDING`

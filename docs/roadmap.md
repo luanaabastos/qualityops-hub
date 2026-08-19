@@ -22,11 +22,14 @@ No milestone below carries a promised date.
 - In-app automation, adapter, Pipeline Lab, and architecture documentation
 - Clearly labeled Video Evidence concept preview without simulated persistence
 - Responsive route presentation, bounded execution pagination, and accessible status definitions
+- Public Render/Neon portfolio deployment with explicit hosted-preview and local-runner modes
+- Resilient sequential Pipeline Lab polling with bounded retry and backoff
 - `LICENSE=MIT`
 
 ## Next
 
-- Human-authorized Render Web Service and Neon PostgreSQL provisioning, followed by hosted-demo deployment
+- Checkpoint 9: external CI ingestion for real Cypress and Playwright reports
+- Repository-secret and integration-token configuration only after separate authorization
 - Flaky Test Radar using longer execution history
 - CSV/XLSX Automation Plan import with validation and change review
 - Persistent video evidence with object storage and explicit retention rules

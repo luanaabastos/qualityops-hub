@@ -402,6 +402,7 @@ nav {
 
 .origin-badge.live { color: var(--accent); border-color: rgba(94, 234, 212, 0.4); }
 .origin-badge.seeded { color: var(--info); border-color: rgba(147, 197, 253, 0.4); }
+.origin-badge.external { color: #c4b5fd; border-color: rgba(196, 181, 253, 0.45); }
 
 .metrics-grid,
 .delta-grid {

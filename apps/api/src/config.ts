@@ -6,6 +6,7 @@ export type RuntimeConfig = {
   port: number;
   serveWeb: boolean;
   demoEnabled: boolean;
+  demoRunnerMode: DemoRunnerMode;
   apiBaseUrl: string;
   publicAppUrl: string;
   demoSystemToken: string;
@@ -16,6 +17,8 @@ export type RuntimeConfig = {
   demoRateLimitWindowMs: number;
   demoRunCooldownMs: number;
 };
+
+export type DemoRunnerMode = 'local' | 'hosted-preview';
 
 export class RuntimeConfigError extends Error {
   constructor(
@@ -48,6 +51,14 @@ export function loadRuntimeConfig(
 ): RuntimeConfig {
   const production = overrides.production ?? env.NODE_ENV === 'production';
   const demoEnabled = overrides.demoEnabled ?? env.DEMO_PIPELINE_LAB_ENABLED === 'true';
+  const configuredRunnerMode = overrides.demoRunnerMode ?? env.DEMO_RUNNER_MODE;
+  if (production && demoEnabled && !configuredRunnerMode) {
+    throw new RuntimeConfigError('DEMO_RUNNER_MODE_REQUIRED', 'DEMO_RUNNER_MODE is required when Pipeline Lab is enabled in production.');
+  }
+  if (configuredRunnerMode && !['local', 'hosted-preview'].includes(configuredRunnerMode)) {
+    throw new RuntimeConfigError('DEMO_RUNNER_MODE_INVALID', 'DEMO_RUNNER_MODE must be local or hosted-preview.');
+  }
+  const demoRunnerMode = (configuredRunnerMode ?? 'local') as DemoRunnerMode;
   const serveWeb = overrides.serveWeb ?? production;
   const configuredPublicAppUrl = overrides.publicAppUrl ?? env.PUBLIC_APP_URL;
   if (production && !configuredPublicAppUrl) {
@@ -62,10 +73,10 @@ export function loadRuntimeConfig(
     env.API_BASE_URL ?? (production ? publicAppUrl : 'http://127.0.0.1:3001')
   );
   const configuredSystemToken = overrides.demoSystemToken ?? env.DEMO_SYSTEM_TOKEN;
-  if (production && demoEnabled && (!configuredSystemToken || configuredSystemToken.length < 32)) {
+  if (production && demoEnabled && demoRunnerMode === 'local' && (!configuredSystemToken || configuredSystemToken.length < 32)) {
     throw new RuntimeConfigError(
       'DEMO_SYSTEM_TOKEN_INVALID',
-      'DEMO_SYSTEM_TOKEN must contain at least 32 characters when the hosted Pipeline Lab is enabled.'
+      'DEMO_SYSTEM_TOKEN must contain at least 32 characters when the local Pipeline Lab runner is enabled in production.'
     );
   }
   const defaultOrigins = production ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -80,6 +91,7 @@ export function loadRuntimeConfig(
     port: overrides.port ?? integer(env.PORT, 3001, 1, 65_535),
     serveWeb,
     demoEnabled,
+    demoRunnerMode,
     apiBaseUrl,
     publicAppUrl,
     demoSystemToken: configuredSystemToken ?? randomBytes(32).toString('base64url'),

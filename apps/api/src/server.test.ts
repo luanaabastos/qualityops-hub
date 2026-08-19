@@ -6,7 +6,9 @@ import { Database } from './database.js';
 import { QualityRepository } from './repository.js';
 import { buildApp } from './server.js';
 import { DemoCapacityError } from './demo-protection.js';
+import { HostedPreviewJobService } from './demo-jobs.js';
 import { IntegrationTokenService } from './token-service.js';
+import { seedDemoHistory } from './seed.js';
 
 let database: Database;
 let repository: QualityRepository;
@@ -84,7 +86,8 @@ integrationDescribe('API and authenticated report ingestion', () => {
       api: 'ready',
       database: 'ready',
       objectStorage: 'not-configured',
-      backgroundJobs: 'disabled'
+      backgroundJobs: 'disabled',
+      demoRunnerMode: 'local'
     });
     expect(health.headers['x-content-type-options']).toBe('nosniff');
     expect(health.headers['x-frame-options']).toBe('DENY');
@@ -177,9 +180,66 @@ integrationDescribe('API and authenticated report ingestion', () => {
     expect(second.json().executionId).toBe(first.json().executionId);
   });
 
+  it('keeps seeded history distinct from authenticated external CI ingestion', async () => {
+    await seedDemoHistory(database, repository);
+    const created = await tokens.create('servicedesk');
+    const body = { ...payload('servicedesk'), source: 'GITHUB_ACTIONS' };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/products/servicedesk/test-reports',
+      headers: { authorization: `Bearer ${created.token}` },
+      payload: body
+    });
+    expect(response.statusCode).toBe(201);
+    const origins = await database.pool.query('SELECT DISTINCT origin FROM test_executions ORDER BY origin');
+    expect(origins.rows.map((row) => row.origin)).toEqual(['EXTERNAL_CI', 'SEEDED_DEMO']);
+  });
+
   it('does not register local demo routes when the feature flag is disabled', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/demo/runs', payload: { product: 'shopsphere', suite: 'SMOKE', mode: 'SUCCESS' } });
     expect(response.statusCode).toBe(404);
+  });
+
+  it('exposes a hosted preview without adding an official execution', async () => {
+    const previewApp = await buildApp({
+      database: new Database(testDatabaseUrl),
+      demoEnabled: true,
+      seed: false,
+      demoJobs: new HostedPreviewJobService(repository, { transitionDelayMs: 0 }),
+      config: {
+        demoRunnerMode: 'hosted-preview',
+        demoRunCooldownMs: 0,
+        demoRateLimitMax: 10
+      }
+    });
+    const configResponse = await previewApp.inject({ method: 'GET', url: '/api/demo/config' });
+    expect(configResponse.json()).toEqual({
+      enabled: true,
+      runnerMode: 'hosted-preview',
+      externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING'
+    });
+
+    const queued = await previewApp.inject({
+      method: 'POST',
+      url: '/api/demo/runs',
+      payload: { product: 'shopsphere', suite: 'REGRESSION', mode: 'SUCCESS' }
+    });
+    expect(queued.statusCode).toBe(202);
+    const runId = queued.json().run.runId as string;
+    await expect.poll(async () => {
+      const response = await previewApp.inject({ method: 'GET', url: `/api/demo/runs/${runId}` });
+      return response.json().run.state;
+    }).toBe('COMPLETED');
+    const completed = await previewApp.inject({ method: 'GET', url: `/api/demo/runs/${runId}` });
+    expect(completed.json().run).toMatchObject({
+      runnerMode: 'hosted-preview',
+      previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING',
+      executionId: null,
+      state: 'COMPLETED'
+    });
+    const storedExecutions = await database.pool.query('SELECT COUNT(*) count FROM test_executions');
+    expect(Number(storedExecutions.rows[0].count)).toBe(0);
+    await previewApp.close();
   });
 
   it('rejects Pipeline Lab injection and oversized requests, then returns safe 429 responses', async () => {
@@ -195,7 +255,7 @@ integrationDescribe('API and authenticated report ingestion', () => {
       demoEnabled: true,
       seed: false,
       demoJobs: fakeJobs,
-      config: { demoRunCooldownMs: 0, demoRateLimitMax: 2, demoRateLimitWindowMs: 60_000 }
+      config: { demoRunnerMode: 'local', demoRunCooldownMs: 0, demoRateLimitMax: 2, demoRateLimitWindowMs: 60_000 }
     });
     const injection = await demoApp.inject({
       method: 'POST', url: '/api/demo/runs',

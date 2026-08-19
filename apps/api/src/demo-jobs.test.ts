@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { repositoryRoot } from './database.js';
-import { demoRunnerEnvironment, demoTimeoutReport, DemoJobService } from './demo-jobs.js';
+import { createDemoJobController, demoRunnerEnvironment, demoTimeoutReport, DemoJobService } from './demo-jobs.js';
 import type { QualityRepository } from './repository.js';
 
 describe('demo runner process isolation', () => {
@@ -49,5 +49,62 @@ describe('demo runner process isolation', () => {
     expect(demoTimeoutReport('shopsphere')).toMatchObject({ knownTotal: 5, infrastructureError: { message: expect.any(String) } });
     expect(demoTimeoutReport('servicedesk')).toMatchObject({ version: 'playwright-json-v1', tests: [], infrastructureError: { message: expect.any(String) } });
     expect(demoTimeoutReport('pocketwallet')).toMatchObject({ version: 'mobile-e2e-json-v1', executed: 0, infrastructureError: { message: expect.any(String) } });
+  });
+});
+
+describe('explicit demo runner modes', () => {
+  it.each(['shopsphere', 'servicedesk'] as const)(
+    'keeps the %s hosted preview inside the API process without creating an official execution',
+    async (product) => {
+      let storedRun: Record<string, unknown> | null = null;
+      const updates: Array<Record<string, unknown>> = [];
+      const repository = {
+        failInterruptedDemoRuns: vi.fn(async () => 0),
+        createDemoRun: vi.fn(async (input: Record<string, unknown>) => {
+          storedRun = {
+            runId: input.id,
+            product: input.product,
+            suite: input.suite,
+            mode: input.mode,
+            state: 'QUEUED',
+            progressMessage: 'Queued',
+            executionId: null,
+            runnerMode: input.runnerMode,
+            previewStatus: input.previewStatus,
+            error: null
+          };
+        }),
+        updateDemoRun: vi.fn(async (_id: string, values: Record<string, unknown>) => {
+          updates.push(values);
+          storedRun = { ...(storedRun ?? {}), state: values.state, progressMessage: values.message };
+        }),
+        getDemoRun: vi.fn(async () => storedRun)
+      } as unknown as QualityRepository;
+      const localFactory = vi.fn(() => {
+        throw new Error('local browser factory must not run in hosted-preview mode');
+      });
+      const controller = createDemoJobController('hosted-preview', repository, localFactory, {
+        transitionDelayMs: 0
+      });
+
+      await controller.initialize();
+      const queued = await controller.enqueue({ product, suite: 'REGRESSION', mode: 'SUCCESS' });
+      expect(queued).toMatchObject({
+        runnerMode: 'hosted-preview',
+        previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING',
+        executionId: null
+      });
+      await vi.waitFor(() => expect(updates.at(-1)).toMatchObject({ state: 'COMPLETED' }));
+      expect(localFactory).not.toHaveBeenCalled();
+      expect(updates.some((update) => 'executionId' in update)).toBe(false);
+      expect(JSON.stringify(updates)).toContain('no official execution was created');
+    }
+  );
+
+  it('uses the real runner factory only in local mode', () => {
+    const local = { initialize: vi.fn(), enqueue: vi.fn() };
+    const localFactory = vi.fn(() => local);
+    expect(createDemoJobController('local', {} as QualityRepository, localFactory)).toBe(local);
+    expect(localFactory).toHaveBeenCalledOnce();
   });
 });

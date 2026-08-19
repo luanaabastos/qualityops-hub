@@ -15,9 +15,9 @@ export const normalizedStatusSchema = z.enum([
 ]);
 export const suiteTypeSchema = z.enum(['SMOKE', 'REGRESSION']);
 export const pipelineSourceSchema = z.enum(['DEMO_PIPELINE', 'GITHUB_ACTIONS', 'LOCAL_CLI']);
-export const executionOriginSchema = z.enum(['SEEDED_DEMO', 'DEMO_PIPELINE']);
+export const executionOriginSchema = z.enum(['SEEDED_DEMO', 'DEMO_PIPELINE', 'EXTERNAL_CI']);
 export const demoModeSchema = z.enum(['SUCCESS', 'FUNCTIONAL_FAILURE', 'INFRASTRUCTURE_FAILURE']);
-export const demoRunStateSchema = z.enum(['QUEUED', 'RUNNING', 'PROCESSING_REPORT', 'COMPLETED', 'FAILED']);
+export const demoRunStateSchema = z.enum(['QUEUED', 'RUNNING', 'PROCESSING_REPORT', 'COMPLETED', 'FAILED', 'ERROR']);
 export const freshnessSchema = z.enum(['FRESH', 'STALE', 'OVERDUE']);
 
 const optionalUrlSchema = z.union([z.string().url(), z.literal(''), z.null()]).transform((value) => value || null);

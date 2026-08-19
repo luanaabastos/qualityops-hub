@@ -11,6 +11,7 @@ import {
   createDemoRun,
   fetchAllExecutions,
   fetchDashboard,
+  fetchDemoConfig,
   fetchDemoRun,
   fetchExecution,
   fetchExecutions,
@@ -21,6 +22,7 @@ import {
 import { pollDemoRun } from './demo-polling';
 import type {
   DashboardResponse,
+  DemoConfig,
   DemoRun,
   Execution,
   PlatformReadiness,
@@ -77,6 +79,20 @@ function formatReport(value: string) {
   if (value === 'playwright-json-v1') return 'playwright-json-v1';
   if (value === 'mobile-e2e-json-v1') return 'mobile-e2e-json-v1';
   return value;
+}
+
+type ExecutionOrigin = NonNullable<Execution['origin']>;
+
+function originClass(origin: ExecutionOrigin) {
+  if (origin === 'DEMO_PIPELINE') return 'live';
+  if (origin === 'EXTERNAL_CI') return 'external';
+  return 'seeded';
+}
+
+function originLabel(origin: ExecutionOrigin) {
+  if (origin === 'DEMO_PIPELINE') return 'Local demo run';
+  if (origin === 'EXTERNAL_CI') return 'External CI execution';
+  return 'Seeded demo history';
 }
 
 export function formatMetadataValue(key: string, value: string, origin: string) {
@@ -213,7 +229,7 @@ function OverviewPage() {
               </dl>
 
               <span className={`pill ${statusClass(product.executionStatus)}`}>Latest outcome: {product.executionStatus.replaceAll('_', ' ')}</span>
-              {product.origin ? <span className={`origin-badge ${product.origin === 'DEMO_PIPELINE' ? 'live' : 'seeded'}`}>{product.origin === 'DEMO_PIPELINE' ? 'Live demo run' : 'Seeded demo history'}</span> : null}
+              {product.origin ? <span className={`origin-badge ${originClass(product.origin)}`}>{originLabel(product.origin)}</span> : null}
 
               <NavLink className="detail-link" to={`/products/${product.key}`}>
                 View details
@@ -417,7 +433,7 @@ function ExecutionTable({
               <td>{entry.executed}</td><td>{entry.passed}</td><td>{entry.failed}</td>
               <td>{entry.infrastructureErrors}</td><td>{formatApproval(entry.approval)}</td>
               <td>{formatDuration(entry.duration)}</td>
-              <td><span className={`origin-badge ${entry.origin === 'DEMO_PIPELINE' ? 'live' : 'seeded'}`}>{entry.origin === 'DEMO_PIPELINE' ? 'Live demo run' : 'Seeded demo history'}</span></td>
+              <td><span className={`origin-badge ${originClass(entry.origin)}`}>{originLabel(entry.origin)}</span></td>
               <td><NavLink to={`/executions/${entry.id}`}>View execution</NavLink></td>
             </tr>
           ))}
@@ -516,7 +532,7 @@ type ExecutionDetailsModel = {
   status: string;
   reportFormat: string;
   source: string;
-  origin: string;
+  origin: ExecutionOrigin;
   suiteType: string;
   startedAt: string;
   finishedAt: string;
@@ -562,8 +578,20 @@ function PipelineLabPage() {
   const [mode, setMode] = useState<'SUCCESS' | 'FUNCTIONAL_FAILURE' | 'INFRASTRUCTURE_FAILURE'>('SUCCESS');
   const [run, setRun] = useState<DemoRun | null>(null);
   const [result, setResult] = useState<ExecutionDetailsModel | null>(null);
+  const [demoConfig, setDemoConfig] = useState<DemoConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const busy = run !== null && !['COMPLETED', 'FAILED', 'ERROR'].includes(run.state);
+  const hostedPreview = demoConfig?.runnerMode === 'hosted-preview';
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchDemoConfig(controller.signal)
+      .then((payload: DemoConfig) => setDemoConfig(payload))
+      .catch(() => {
+        if (!controller.signal.aborted) setError('Pipeline Lab configuration is unavailable.');
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!run || ['COMPLETED', 'FAILED', 'ERROR'].includes(run.state)) return;
@@ -605,7 +633,19 @@ function PipelineLabPage() {
   const currentIndex = run ? progress.indexOf(run.state) : -1;
   return (
     <>
-      <PageHeader eyebrow="Bounded demo runner" title="Pipeline Lab" description="Run a fixed, allow-listed fictional pipeline through the same authenticated ingestion API used by external CI." />
+      <PageHeader
+        eyebrow={hostedPreview ? 'Hosted portfolio preview' : 'Bounded local demo runner'}
+        title="Pipeline Lab"
+        description={hostedPreview
+          ? 'Preview the mapped pipeline stages without starting a browser process or creating official execution history.'
+          : 'Run a fixed, allow-listed fictional pipeline through the authenticated ingestion API.'}
+      />
+      {hostedPreview ? (
+        <div className="notice warning-notice">
+          <strong>External browser execution — EXTERNAL_CI_INTEGRATION_PENDING</strong>
+          <p>Browser execution will be performed by external CI after that integration is configured. This hosted free-tier preview does not start Cypress or Playwright, generate test reports, or create official execution history. PocketWallet remains explicitly modeled as MOBILE_HARNESS_DEMO.</p>
+        </div>
+      ) : null}
       <div className="notice warning-notice"><strong>Pipeline Lab runs synthetic portfolio scenarios only.</strong> It accepts no commands, URLs, environment values, or filesystem paths.</div>
       <section className="panel pipeline-layout" aria-labelledby="pipeline-form-title">
         <form onSubmit={submit} className="pipeline-form">
@@ -623,11 +663,17 @@ function PipelineLabPage() {
             {Object.entries(modeDescriptions).map(([value, description]) => (
               <div className={mode === value ? 'selected' : ''} key={value}>
                 <strong>{value === 'SUCCESS' ? 'Success' : value === 'FUNCTIONAL_FAILURE' ? 'Functional Failure' : 'Infrastructure Failure'}</strong>
-                <span>{value === 'INFRASTRUCTURE_FAILURE' && product === 'pocketwallet' ? 'The mobile harness stops before tests execute.' : description}</span>
+                <span>{hostedPreview
+                  ? 'Preview selection only; no test outcome is produced.'
+                  : value === 'INFRASTRUCTURE_FAILURE' && product === 'pocketwallet'
+                    ? 'The mobile harness stops before tests execute.'
+                    : description}</span>
               </div>
             ))}
           </div>
-          <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Pipeline running…' : 'Run demo pipeline'}</button>
+          <button className="primary-button" type="submit" disabled={busy || !demoConfig}>
+            {busy ? 'Pipeline running…' : hostedPreview ? 'Preview pipeline flow' : 'Run demo pipeline'}
+          </button>
         </form>
         <div className="pipeline-progress" aria-live="polite">
           <h2>Progress</h2>
@@ -654,6 +700,16 @@ function PipelineLabPage() {
             <NavLink className="primary-link" to={`/executions/${result.id}`}>View execution</NavLink>
             <button className="secondary-button" type="button" onClick={reset}>Run another demo</button>
           </div>
+        </section>
+      ) : null}
+      {!result && run?.state === 'COMPLETED' && run.runnerMode === 'hosted-preview' ? (
+        <section className="panel" aria-labelledby="pipeline-preview-title">
+          <div className="section-header"><h2 id="pipeline-preview-title">Hosted preview complete</h2><span>{run.previewStatus}</span></div>
+          <div className="notice warning-notice">
+            <strong>No official execution was created.</strong>
+            <p>This preview demonstrates the orchestration boundary only. Test counts, reports, artifacts, and dashboard history remain reserved for authenticated ingestion from real external CI.</p>
+          </div>
+          <div className="result-actions"><button className="secondary-button" type="button" onClick={reset}>Preview another flow</button></div>
         </section>
       ) : null}
     </>
@@ -706,7 +762,7 @@ function ExecutionDetailsPage() {
             ? <CopyableValue key={key} label={key} value={displayValue} />
             : <div key={key}><span>{key}</span><strong>{displayValue}</strong></div>;
         })}
-        <div><span>Source</span><strong>{execution.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : execution.source}</strong></div><div><span>Origin</span><strong><span className={`origin-badge ${execution.origin === 'DEMO_PIPELINE' ? 'live' : 'seeded'}`}>{execution.origin === 'DEMO_PIPELINE' ? 'Live demo run' : 'Seeded demo history'}</span></strong></div>
+        <div><span>Source</span><strong>{execution.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : execution.source}</strong></div><div><span>Origin</span><strong><span className={`origin-badge ${originClass(execution.origin)}`}>{originLabel(execution.origin)}</span></strong></div>
         <div><span>Raw format</span><strong>{execution.reportFormat}</strong></div><div><span>Suite type</span><strong>{execution.suiteType}</strong></div>
       </div></section>
       <section className="panel"><h2>Regression delta</h2><div className="delta-grid">
@@ -787,7 +843,13 @@ function PlatformHealthPage() {
     { name: 'API', state: apiUnavailable ? 'unavailable' : health?.api ?? 'checking', detail: 'Fastify HTTP API' },
     { name: 'PostgreSQL', state: apiUnavailable ? 'unknown' : health?.database ?? 'checking', detail: 'Persistent execution history' },
     { name: 'Object Storage', state: health?.objectStorage ?? 'not-configured', detail: 'Optional for the current portfolio preview' },
-    { name: 'Demo runners', state: apiUnavailable ? 'unknown' : health?.backgroundJobs ?? 'checking', detail: 'Allow-listed local jobs' }
+    {
+      name: 'Demo runners',
+      state: apiUnavailable ? 'unknown' : health?.backgroundJobs ?? 'checking',
+      detail: health?.demoRunnerMode === 'hosted-preview'
+        ? 'Hosted preview only; external CI integration pending'
+        : 'Allow-listed local jobs'
+    }
   ];
 
   return (

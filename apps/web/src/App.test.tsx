@@ -4,6 +4,7 @@ import App, { formatMetadataValue } from './App';
 
 describe('App shell', () => {
   beforeEach(() => {
+    window.history.pushState({}, '', '/');
     const fetchMock = vi.fn<typeof fetch>(async () => ({
       ok: true,
       json: async () => ({
@@ -61,5 +62,28 @@ describe('App shell', () => {
     expect(formatMetadataValue('pipelineUrl', 'https://ci.example.test/runs/123', 'https://demo.example.test'))
       .toBe('https://ci.example.test/runs/123');
     expect(formatMetadataValue('pipelineId', 'pipeline-123', 'https://demo.example.test')).toBe('pipeline-123');
+  });
+
+  it('labels the hosted Pipeline Lab as an external-CI preview', async () => {
+    window.history.pushState({}, '', '/pipeline-lab');
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/api/demo/config')) {
+        return {
+          ok: true,
+          json: async () => ({
+            enabled: true,
+            runnerMode: 'hosted-preview',
+            externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING'
+          })
+        } as Response;
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+
+    render(<App />);
+    expect(await screen.findByText(/EXTERNAL_CI_INTEGRATION_PENDING/)).toBeTruthy();
+    expect(screen.getByText(/does not start Cypress or Playwright/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Preview pipeline flow' })).toBeTruthy();
   });
 });

@@ -40,6 +40,18 @@ describe('adapter registry and normalized semantics', () => {
     expect(result.summary).toMatchObject({ executed: 1, failed: 1, errors: 0 });
   });
 
+  it('labels authenticated GitHub Actions ingestion as external CI', () => {
+    const report = { version: 'playwright-json-v1', framework: 'Playwright', infrastructureError: null, tests: [] };
+    const result = adapterRegistry.resolve('playwright-json-v1', report).normalize({
+      ...base,
+      source: 'GITHUB_ACTIONS',
+      productKey: 'servicedesk',
+      reportFormat: 'playwright-json-v1',
+      report
+    });
+    expect(result.origin).toBe('EXTERNAL_CI');
+  });
+
   it('keeps mobile infrastructure errors separate from functional failures', () => {
     const report = { version: 'mobile-e2e-json-v1', executionMode: 'MOBILE_HARNESS_DEMO', total: 5, executed: 0, passed: 0, failed: 0, skipped: 0, infrastructureError: { message: 'harness unavailable' }, tests: [] };
     const result = adapterRegistry.resolve('mobile-e2e-json-v1', report).normalize({ ...base, productKey: 'pocketwallet', reportFormat: 'mobile-e2e-json-v1', report });

@@ -31,6 +31,7 @@ export const fetchProduct = (key: string) => getJson(`/api/products/${key}`);
 export const fetchExecutions = (key: string) => getJson(`/api/products/${key}/executions`);
 export const fetchExecution = (id: string, signal?: AbortSignal) => getJson(`/api/executions/${id}`, signal);
 export const fetchDemoRun = (id: string, signal?: AbortSignal) => getJson(`/api/demo/runs/${id}`, signal);
+export const fetchDemoConfig = (signal?: AbortSignal) => getJson('/api/demo/config', signal);
 export const fetchReadiness = () => getJson('/api/readiness');
 
 export async function fetchAllExecutions(keys: string[]) {

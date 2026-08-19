@@ -10,7 +10,7 @@ import { demoRunRequestSchema, productKeySchema, reportIngestionSchema } from '@
 import { bootstrapDemo } from './bootstrap.js';
 import { loadRuntimeConfig, RuntimeConfigError, type RuntimeConfig } from './config.js';
 import { Database, repositoryRoot } from './database.js';
-import { DemoJobService, type DemoJobController } from './demo-jobs.js';
+import { createDemoJobController, DemoJobService, type DemoJobController } from './demo-jobs.js';
 import { DemoCapacityError, DemoRequestLimiter } from './demo-protection.js';
 import { ReportIngestionService } from './ingestion-service.js';
 import { IdempotencyConflictError, QualityRepository } from './repository.js';
@@ -114,14 +114,19 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
 
   const tokenService = new IntegrationTokenService(repository);
   const ingestionService = new ReportIngestionService(repository);
-  const demoJobs = options.demoJobs ?? new DemoJobService(repository, {
-    apiBaseUrl: config.apiBaseUrl,
-    targetUrl: config.publicAppUrl,
-    systemToken: config.demoSystemToken,
-    maxConcurrentRuns: config.demoMaxConcurrentRuns,
-    timeoutMs: config.demoRunTimeoutMs,
-    log: (record) => app.log.info(record)
-  });
+  const demoJobs = options.demoJobs ?? createDemoJobController(
+    config.demoRunnerMode,
+    repository,
+    () => new DemoJobService(repository, {
+      apiBaseUrl: config.apiBaseUrl,
+      targetUrl: config.publicAppUrl,
+      systemToken: config.demoSystemToken,
+      maxConcurrentRuns: config.demoMaxConcurrentRuns,
+      timeoutMs: config.demoRunTimeoutMs,
+      log: (record) => app.log.info(record)
+    }),
+    { log: (record) => app.log.info(record) }
+  );
   const requestLimiter = new DemoRequestLimiter(
     config.demoRateLimitMax,
     config.demoRateLimitWindowMs,
@@ -139,7 +144,12 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
       mode: 'postgresql',
       database: ready ? 'ready' : 'unavailable',
       objectStorage: 'not-configured',
-      backgroundJobs: config.demoEnabled ? 'ready' : 'disabled'
+      backgroundJobs: !config.demoEnabled
+        ? 'disabled'
+        : config.demoRunnerMode === 'hosted-preview'
+          ? 'preview'
+          : 'ready',
+      demoRunnerMode: config.demoRunnerMode
     };
   });
 
@@ -195,6 +205,11 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   });
 
   if (config.demoEnabled) {
+    app.get('/api/demo/config', async () => ({
+      enabled: true,
+      runnerMode: config.demoRunnerMode,
+      externalCiStatus: config.demoRunnerMode === 'hosted-preview' ? 'EXTERNAL_CI_INTEGRATION_PENDING' : null
+    }));
     app.post('/api/demo/runs', { bodyLimit: 4 * 1024 }, async (request, reply) => {
       const parsed = demoRunRequestSchema.safeParse(request.body);
       if (!parsed.success) return reply.code(400).send({ error: 'Invalid demo run request', issues: parsed.error.issues });

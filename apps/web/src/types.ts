@@ -22,7 +22,7 @@ export type ProductSummary = {
   pipeline: string;
   commit: string;
   statusLabel: string;
-  origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE' | null;
+  origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE' | 'EXTERNAL_CI' | null;
   syntheticData: true;
 };
 
@@ -57,7 +57,7 @@ export type Execution = {
   qualityScore: number | null;
   duration: number;
   source: string;
-  origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE';
+  origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE' | 'EXTERNAL_CI';
   reportFormat: string;
   suiteType: string;
 };
@@ -78,7 +78,15 @@ export type DemoRun = {
   state: 'QUEUED' | 'RUNNING' | 'PROCESSING_REPORT' | 'COMPLETED' | 'FAILED' | 'ERROR';
   progressMessage: string;
   executionId: string | null;
+  runnerMode: 'local' | 'hosted-preview';
+  previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
   error: string | null;
+};
+
+export type DemoConfig = {
+  enabled: true;
+  runnerMode: 'local' | 'hosted-preview';
+  externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
 };
 
 export type PlatformReadiness = {
@@ -86,5 +94,6 @@ export type PlatformReadiness = {
   api: 'ready';
   database: 'ready' | 'unavailable';
   objectStorage: 'not-configured';
-  backgroundJobs: 'ready' | 'disabled';
+  backgroundJobs: 'ready' | 'preview' | 'disabled';
+  demoRunnerMode: 'local' | 'hosted-preview';
 };

@@ -8,9 +8,9 @@ License: [MIT](LICENSE)
 
 ## Live Demo
 
-`Live demo: deployment pending`
+Live demo: [https://qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)
 
-The repository is technically prepared for an explicitly approved hosted demo, but no hosting resource or public URL has been created. The planned single-service architecture, environment contract, operational limits, and provider caveats are documented in [the hosting guide](docs/hosting.md).
+The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution is intentionally kept outside the small hosted web service; until external CI ingestion is configured, the hosted Pipeline Lab is labeled as a preview and creates no official execution. See [the hosting guide](docs/hosting.md).
 
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
@@ -32,7 +32,7 @@ CI executes tests. QualityOps Hub receives the resulting report, validates it, n
 - Separates functional failures from infrastructure errors.
 - Persists executions, suites, cases, pipeline metadata, and deltas in PostgreSQL.
 - Detects identical replays and conflicting content for the same pipeline identity.
-- Runs safe local or hosted demonstrations through an allow-listed Pipeline Lab.
+- Runs real browser demonstrations locally and a clearly labeled, non-persisting flow preview on the hosted free tier.
 - Shows overview, history, execution details, freshness, and Regression Delta views.
 - Presents an explicit 28/40 fictional Automation Coverage model that is separate from execution approval.
 - Provides a filterable Automation Plan preview and live adapter status for each fictional product.
@@ -53,7 +53,7 @@ flowchart TD
   PostgreSQL --> Views[Dashboard / History / Delta]
 ```
 
-Framework parsing is isolated in adapters; the HTTP layer never contains runner-specific mapping logic. Local runners submit through the same authenticated ingestion boundary intended for a future hosted integration.
+Framework parsing is isolated in adapters; the HTTP layer never contains runner-specific mapping logic. Local runners submit through the same authenticated ingestion boundary reserved for real external-CI reports in the hosted architecture.
 
 ## Demo products
 
@@ -85,6 +85,8 @@ Pipeline Lab is the main interactive demonstration:
 10. Open ShopSphere to inspect Regression Delta.
 
 The API accepts enums only and maps them to fixed runner files. User input never becomes a command, executable, argument list, or filesystem path.
+
+`DEMO_RUNNER_MODE=local` keeps this complete flow and executes the real Cypress, Playwright, or Mobile Harness Demo runner. `DEMO_RUNNER_MODE=hosted-preview` demonstrates queue and processing states without spawning Cypress/Playwright, fabricating reports, or adding an official execution. The public UI displays `EXTERNAL_CI_INTEGRATION_PENDING` until authenticated external CI ingestion is implemented.
 
 ## Portfolio views
 
@@ -122,7 +124,7 @@ Infrastructure errors are not counted as failed assertions. When a runner cannot
 - Responses include defensive content, frame, referrer, and permissions headers.
 - Report bodies are validated with Zod and limited to 10 MiB.
 - SQL calls are parameterized and ingestion writes use transactions.
-- Pipeline Lab is feature-flagged, strictly allow-listed, rate/cooldown/capacity limited, and runs timed child processes without a shell.
+- Pipeline Lab is feature-flagged and strictly allow-listed. Local mode adds rate/cooldown/capacity limits and timed child processes without a shell; hosted-preview mode starts no child process.
 - Stack traces and file paths are sanitized before persistence.
 - Raw reports stay in ignored local artifacts and are not exposed by the API.
 
@@ -206,13 +208,13 @@ Unit tests cover shared quality semantics and adapters. PostgreSQL integration t
 
 ## Roadmap
 
-Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). Hosting configuration is prepared, while provider provisioning, secrets, cost review, and deployment remain separate human-authorized actions.
+Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). The next planned boundary is authenticated report ingestion from external CI; credentials and remote workflow configuration require a separate authorization.
 
 ## Project status
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real browser demo runners, portfolio-ready product views, evidence flow, and hosted-runtime contract are implemented. Creating hosting infrastructure remains a separate human-authorized action.
+The local application, database-backed ingestion, real local browser demo runners, portfolio-ready product views, evidence flow, and public hosted preview are implemented. External CI ingestion remains planned and is not represented as active.
 
 ## License
 

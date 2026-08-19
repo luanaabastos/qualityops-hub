@@ -372,10 +372,20 @@ export class QualityRepository {
     return result.rowCount ?? 0;
   }
 
-  async createDemoRun(input: { id: string; product: ProductKey; suite: string; mode: string; artifactPath: string }): Promise<void> {
+  async createDemoRun(input: {
+    id: string;
+    product: ProductKey;
+    suite: string;
+    mode: string;
+    artifactPath: string;
+    runnerMode: 'local' | 'hosted-preview';
+    previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
+  }): Promise<void> {
     await this.database.pool.query(
-      `INSERT INTO demo_runs(id, product_key, suite_type, mode, state, progress_message, artifact_path)
-       VALUES($1,$2,$3,$4,'QUEUED','Queued',$5)`, [input.id, input.product, input.suite, input.mode, input.artifactPath]
+      `INSERT INTO demo_runs(
+        id, product_key, suite_type, mode, state, progress_message, artifact_path, runner_mode, preview_status
+       ) VALUES($1,$2,$3,$4,'QUEUED','Queued',$5,$6,$7)`,
+      [input.id, input.product, input.suite, input.mode, input.artifactPath, input.runnerMode, input.previewStatus]
     );
   }
 
@@ -396,6 +406,7 @@ export class QualityRepository {
     return {
       runId: row.id, product: row.product_key, suite: row.suite_type, mode: row.mode,
       state: row.state, progressMessage: row.progress_message, executionId: row.execution_id,
+      runnerMode: row.runner_mode, previewStatus: row.preview_status,
       error: row.error_message, createdAt: iso(row.created_at), startedAt: row.started_at ? iso(row.started_at) : null,
       finishedAt: row.finished_at ? iso(row.finished_at) : null
     };
