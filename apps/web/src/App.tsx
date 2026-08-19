@@ -18,6 +18,7 @@ import {
   fetchProduct,
   fetchProducts
 } from './api';
+import { pollDemoRun } from './demo-polling';
 import type {
   DashboardResponse,
   DemoRun,
@@ -562,23 +563,22 @@ function PipelineLabPage() {
   const [run, setRun] = useState<DemoRun | null>(null);
   const [result, setResult] = useState<ExecutionDetailsModel | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const busy = run !== null && !['COMPLETED', 'FAILED'].includes(run.state);
+  const busy = run !== null && !['COMPLETED', 'FAILED', 'ERROR'].includes(run.state);
 
   useEffect(() => {
-    if (!run || ['COMPLETED', 'FAILED'].includes(run.state)) return;
-    const interval = window.setInterval(() => {
-      fetchDemoRun(run.runId)
-        .then(async (payload) => {
-          setRun(payload.run);
-          if (payload.run.state === 'COMPLETED' && payload.run.executionId) {
-            const details = await fetchExecution(payload.run.executionId);
-            setResult(details.execution);
-          }
-        })
-        .catch(() => setError('Unable to poll the demo run.'));
-    }, 2_000);
-    return () => window.clearInterval(interval);
-  }, [run]);
+    if (!run || ['COMPLETED', 'FAILED', 'ERROR'].includes(run.state)) return;
+    const controller = new AbortController();
+    void pollDemoRun({
+      runId: run.runId,
+      signal: controller.signal,
+      fetchRun: fetchDemoRun,
+      fetchExecution,
+      onRun: setRun,
+      onResult: setResult,
+      onMessage: setError
+    });
+    return () => controller.abort();
+  }, [run?.runId]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

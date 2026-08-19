@@ -1,19 +1,36 @@
 import type { DemoMode, ProductKey, SuiteType } from '@qualityops-hub/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
+const requestTimeoutMs = 10_000;
 
-async function getJson(path: string) {
-  const response = await fetch(`${API_BASE}${path}`);
-  if (!response.ok) throw new Error(`${response.status}:${path} request failed`);
-  return response.json();
+export class ApiRequestError extends Error {
+  constructor(readonly status: number, path: string) {
+    super(`${status}:${path} request failed`);
+    this.name = 'ApiRequestError';
+  }
+}
+
+async function getJson(path: string, signal?: AbortSignal) {
+  const controller = new AbortController();
+  const relayAbort = () => controller.abort();
+  signal?.addEventListener('abort', relayAbort, { once: true });
+  const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, { signal: controller.signal });
+    if (!response.ok) throw new ApiRequestError(response.status, path);
+    return response.json();
+  } finally {
+    window.clearTimeout(timeout);
+    signal?.removeEventListener('abort', relayAbort);
+  }
 }
 
 export const fetchDashboard = () => getJson('/api/dashboard');
 export const fetchProducts = () => getJson('/api/products');
 export const fetchProduct = (key: string) => getJson(`/api/products/${key}`);
 export const fetchExecutions = (key: string) => getJson(`/api/products/${key}/executions`);
-export const fetchExecution = (id: string) => getJson(`/api/executions/${id}`);
-export const fetchDemoRun = (id: string) => getJson(`/api/demo/runs/${id}`);
+export const fetchExecution = (id: string, signal?: AbortSignal) => getJson(`/api/executions/${id}`, signal);
+export const fetchDemoRun = (id: string, signal?: AbortSignal) => getJson(`/api/demo/runs/${id}`, signal);
 export const fetchReadiness = () => getJson('/api/readiness');
 
 export async function fetchAllExecutions(keys: string[]) {

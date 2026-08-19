@@ -75,7 +75,7 @@ export type DemoRun = {
   product: string;
   suite: string;
   mode: string;
-  state: 'QUEUED' | 'RUNNING' | 'PROCESSING_REPORT' | 'COMPLETED' | 'FAILED';
+  state: 'QUEUED' | 'RUNNING' | 'PROCESSING_REPORT' | 'COMPLETED' | 'FAILED' | 'ERROR';
   progressMessage: string;
   executionId: string | null;
   error: string | null;
