@@ -6,7 +6,7 @@ QualityOps Hub is a local portfolio demo. These controls reduce risk in that sco
 
 ### Authentication and tokens
 
-Integration tokens are product-scoped opaque values. The database stores a random salt, a scrypt-derived hash, and a non-secret prefix; it never stores the raw value. Create and rotate commands display the token once. Revoked tokens fail authentication, and hash comparison is timing-safe. Authorization headers are not logged.
+Integration tokens are product-scoped opaque values. The database stores a random salt, a scrypt-derived hash, and a non-secret prefix; it never stores the raw value. Create and rotate require an explicit acknowledgement and display the token once. A database constraint permits only one active token per product. Revoked tokens fail authentication, cross-product tokens are rejected, and hash comparison is timing-safe. Authorization headers are not logged.
 
 ### HTTP boundary
 

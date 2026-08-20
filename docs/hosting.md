@@ -12,7 +12,7 @@ One web service is the smallest operational shape that preserves the existing pr
 
 Render Free hosts the React UI, Fastify API, report normalizers, ingestion boundary, and controlled Pipeline Lab preview. Neon PostgreSQL persists seeded and officially ingested execution history. Real Cypress and Playwright automation belongs in external CI, where reports can be generated as artifacts and sent to the authenticated public API. This avoids running memory-intensive browsers inside the small web service while keeping the portfolio demo safe, predictable, and cost-free.
 
-The public `hosted-preview` mode demonstrates queue and processing states but never starts Cypress/Playwright, fabricates a report, or creates an official execution. Until the external workflow is implemented, the UI reports `EXTERNAL_CI_INTEGRATION_PENDING`. Local `local` mode retains the complete real-runner path for ShopSphere and ServiceDesk; PocketWallet remains `MOBILE_HARNESS_DEMO`.
+The public `hosted-preview` mode demonstrates queue and processing states but never starts Cypress/Playwright, fabricates a report, or creates an official execution. The UI reports `EXTERNAL_CI_INTEGRATION_PENDING` until both external workflows have persisted evidence, then derives `EXTERNAL_CI_ACTIVE` from PostgreSQL. Local `local` mode retains the complete real-runner path for ShopSphere and ServiceDesk; PocketWallet remains `MOBILE_HARNESS_DEMO`.
 
 The database contract remains standard PostgreSQL through `DATABASE_URL`. Application code does not call the Render API, Neon API, Supabase API, or a provider-specific database SDK, and no Neon project ID appears in source. The same OCI image can run with any compatible PostgreSQL provider.
 
@@ -50,7 +50,7 @@ The Docker runtime provides a deterministic build and startup contract. Render's
 | `DATABASE_SSL_MODE` | No | No | Normally omit so the provider connection string controls `sslmode` |
 | `QUALITYOPS_ALLOWED_ORIGINS` | No | No | Leave unset for same-origin production |
 
-No value for a real database or system token belongs in Git, logs, screenshots, frontend assets, or Docker build arguments. Hosted preview mode has no internal report to submit and therefore does not need a Pipeline Lab system credential. A future external-CI ingestion token must be product-scoped, stored only in the authorized CI secret store, and must never reach the browser UI.
+No value for a real database or system token belongs in Git, logs, screenshots, frontend assets, or Docker build arguments. Hosted preview mode has no internal report to submit and therefore does not need a Pipeline Lab system credential. External-CI ingestion tokens are product-scoped, stored only as GitHub Actions secrets after human configuration, and must never reach the browser UI.
 
 ## Public URL bootstrap
 
@@ -76,7 +76,7 @@ The public request contract is a strict object containing only an allow-listed p
 
 Mode selection is explicit and never inferred from a hostname. In `local` mode, the server maps enums to fixed runner files and arguments, resolves the artifact directory under a server-generated UUID, fixes the working directory, and spawns with `shell: false`. Child processes receive a small operating-system environment allowlist plus `DEMO_TARGET_URL`; database and credential variables do not cross the process boundary.
 
-In `hosted-preview` mode, the API records only a clearly marked preview job. It advances through bounded visual states in process and never spawns Cypress or Playwright, creates fake Mochawesome/Playwright data, invokes ingestion, or associates an `execution_id`. Official metrics, history, freshness, and Regression Delta change only when a real report reaches authenticated ingestion. Seed rows remain `SEEDED_DEMO`; future GitHub Actions ingestion is stored as `EXTERNAL_CI`.
+In `hosted-preview` mode, the API records only a clearly marked preview job. It advances through bounded visual states in process and never spawns Cypress or Playwright, creates fake Mochawesome/Playwright data, invokes ingestion, or associates an `execution_id`. Official metrics, freshness, and Regression Delta change only when a real report reaches authenticated ingestion. Seed rows remain `SEEDED_DEMO`; GitHub Actions ingestion is stored as `EXTERNAL_CI` and history screens label all origins.
 
 Abuse controls are deliberately small for a portfolio demo:
 
@@ -100,7 +100,7 @@ Responses add CSP, `X-Content-Type-Options`, `X-Frame-Options`, referrer, and pe
 
 ## Ephemeral filesystem
 
-Raw local runner reports, normalized snapshots, metadata files, logs, screenshots, and videos under `artifacts/` are disposable. The hosted preview creates none of those artifacts. Future external CI retains raw reports in its own artifact store and submits the validated payload to the API. The dashboard and execution details read normalized PostgreSQL rows and do not depend on the Render filesystem.
+Raw local runner reports, normalized snapshots, metadata files, logs, screenshots, and videos under `artifacts/` are disposable. The hosted preview creates none of those artifacts. External CI retains raw reports in GitHub Actions artifacts and submits the validated payload to the API. The dashboard and execution details read normalized PostgreSQL rows and do not depend on the Render filesystem.
 
 ## Production verification
 
@@ -123,7 +123,7 @@ Neon PostgreSQL is the persistent datastore for the demo; Render's filesystem is
 - the free Render Web Service can spin down after inactivity, and Neon compute can autosuspend; the next request may have a short cold start;
 - no keep-alive cron, synthetic ping, or other mechanism attempts to bypass free-tier sleep;
 - Neon free-plan storage, compute, transfer, and restore limits apply and may change;
-- external CI workflow activation, secret entry, manual redeployment, and billing changes remain human-authorized actions.
+- external CI secret entry and manual proof dispatch remain human-authorized actions; billing changes require separate approval.
 
 ## Provider references
 

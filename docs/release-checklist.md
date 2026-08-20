@@ -1,6 +1,6 @@
 # Public release checklist
 
-Checkpoint 5B closed the technical release gate, the initial GitHub publication was authorized, and the Render/Neon portfolio demo was subsequently deployed. External-CI ingestion is not configured.
+Checkpoint 5B closed the technical release gate, the initial GitHub publication was authorized, and the Render/Neon portfolio demo was subsequently deployed. External-CI implementation is ready; secret configuration and real-run proof remain pending.
 
 - [x] README final
 - [x] Local demo works
@@ -21,7 +21,9 @@ Checkpoint 5B closed the technical release gate, the initial GitHub publication 
 - [x] Initial GitHub publication explicitly approved and completed
 - [x] Render/Neon portfolio deployment explicitly approved and completed
 - [x] Hosted mode clearly separated from real local browser runners
-- [ ] External-CI ingestion and repository secrets separately approved
+- [x] External-CI workflow and ingestion implementation reviewed locally
+- [ ] Product tokens and repository secrets configured by the responsible human
+- [ ] Three real external-CI proof runs captured
 
 `PUBLIC_RELEASE_READY`
 

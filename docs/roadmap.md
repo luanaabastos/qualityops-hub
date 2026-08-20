@@ -24,12 +24,12 @@ No milestone below carries a promised date.
 - Responsive route presentation, bounded execution pagination, and accessible status definitions
 - Public Render/Neon portfolio deployment with explicit hosted-preview and local-runner modes
 - Resilient sequential Pipeline Lab polling with bounded retry and backoff
+- External GitHub Actions workflows, product-authenticated report delivery, and official-data isolation
 - `LICENSE=MIT`
 
 ## Next
 
-- Checkpoint 9: external CI ingestion for real Cypress and Playwright reports
-- Repository-secret and integration-token configuration only after separate authorization
+- Checkpoint 9 activation: configure the two product secrets and capture three real workflow proofs
 - Flaky Test Radar using longer execution history
 - CSV/XLSX Automation Plan import with validation and change review
 - Persistent video evidence with object storage and explicit retention rules

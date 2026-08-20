@@ -10,7 +10,7 @@ License: [MIT](LICENSE)
 
 Live demo: [https://qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)
 
-The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution is intentionally kept outside the small hosted web service; until external CI ingestion is configured, the hosted Pipeline Lab is labeled as a preview and creates no official execution. See [the hosting guide](docs/hosting.md).
+The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution stays in manually dispatched GitHub Actions workflows; the hosted Pipeline Lab remains a non-persisting preview. External-CI activation is waiting for the two product secrets and real proof runs. See [the hosting guide](docs/hosting.md).
 
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
@@ -86,7 +86,7 @@ Pipeline Lab is the main interactive demonstration:
 
 The API accepts enums only and maps them to fixed runner files. User input never becomes a command, executable, argument list, or filesystem path.
 
-`DEMO_RUNNER_MODE=local` keeps this complete flow and executes the real Cypress, Playwright, or Mobile Harness Demo runner. `DEMO_RUNNER_MODE=hosted-preview` demonstrates queue and processing states without spawning Cypress/Playwright, fabricating reports, or adding an official execution. The public UI displays `EXTERNAL_CI_INTEGRATION_PENDING` until authenticated external CI ingestion is implemented.
+`DEMO_RUNNER_MODE=local` keeps this complete flow and executes the real Cypress, Playwright, or Mobile Harness Demo runner. `DEMO_RUNNER_MODE=hosted-preview` demonstrates queue and processing states without spawning Cypress/Playwright, fabricating reports, or adding an official execution. The public UI derives `EXTERNAL_CI_INTEGRATION_PENDING` or `EXTERNAL_CI_ACTIVE` from persisted ShopSphere and ServiceDesk GitHub Actions evidence.
 
 ## Portfolio views
 
@@ -110,7 +110,7 @@ The normalized model preserves stable scenario identity, status, duration, sanit
 
 ## Regression Delta
 
-Each new execution is compared with the latest previous execution for the same product using a stable test-case key. The UI reports new failures, recovered tests, persistent failures, new tests, and removed tests without guessing from display names alone.
+Each new execution is compared with the latest previous execution for the same product and origin using a stable test-case key. The UI reports new failures, recovered tests, persistent failures, new tests, and removed tests without mixing seed, local-demo, and GitHub Actions history.
 
 ## Infrastructure errors
 
@@ -208,13 +208,13 @@ Unit tests cover shared quality semantics and adapters. PostgreSQL integration t
 
 ## Roadmap
 
-Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). The next planned boundary is authenticated report ingestion from external CI; credentials and remote workflow configuration require a separate authorization.
+Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). External-CI code is implemented; product-secret configuration and the three real proof runs remain a separate human-controlled activation step.
 
 ## Project status
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real local browser demo runners, portfolio-ready product views, evidence flow, and public hosted preview are implemented. External CI ingestion remains planned and is not represented as active.
+The local application, database-backed ingestion, real local browser runners, portfolio-ready views, public hosted preview, and external GitHub Actions ingestion path are implemented. External CI is not represented as active until both product integrations produce persisted real evidence.
 
 ## License
 

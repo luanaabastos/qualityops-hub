@@ -15,7 +15,7 @@ This manifest preserves the initial sanitized public-release record and tracks t
 - License: `MIT`
 - `LICENSE=MIT`
 - Repository: `https://github.com/luanaabastos/qualityops-hub`
-- Current product milestone: Checkpoint 7 portfolio polish
+- Current product milestone: Checkpoint 9 external-CI implementation, pending human activation
 
 The manifest commit changes HEAD by definition without changing the release facts above. The final HEAD is reported by `git rev-parse HEAD` after this file is committed.
 
@@ -82,12 +82,12 @@ Checkpoint 7 additionally generated and visually reviewed 15 ignored local evide
 
 ## Workflows
 
-- `platform.yml`: frozen install, PostgreSQL, lint, typecheck, tests, build, scans, and Chromium E2E.
-- `demo-shopsphere.yml`: Cypress and Mochawesome artifact generation.
-- `demo-servicedesk.yml`: Playwright and versioned JSON artifact generation.
+- `platform.yml`: push/PR/manual frozen install, PostgreSQL, lint, typecheck, tests, build, scans, and Chromium E2E.
+- `demo-shopsphere.yml`: manual Cypress/Mochawesome artifact and authenticated external-CI ingestion, with honest functional-failure conclusion.
+- `demo-servicedesk.yml`: manual Playwright/versioned JSON artifact and authenticated external-CI ingestion.
 - `demo-pocketwallet.yml`: Mobile Harness Demo JSON artifact generation.
 
-All workflows use read-only repository permissions and bounded timeouts. External-CI ingestion is not configured yet and remains a separately authorized milestone.
+All workflows use least-privilege repository permissions and bounded timeouts. External-CI code is present; product-secret entry and real workflow proof remain a separately authorized human step.
 
 ## Known limitations
 
@@ -100,9 +100,9 @@ All workflows use read-only repository permissions and bounded timeouts. Externa
 - PocketWallet is a deterministic Mobile Harness Demo, not a real device run.
 - Automation Coverage, Automation Plan, adapter status, and in-app documentation use explicit fictional demo models rather than external systems of record.
 - Video Evidence is a concept preview; upload and persistent object storage remain roadmap work.
-- Flaky Test Radar and remote GitHub ingestion remain roadmap work.
+- Flaky Test Radar remains roadmap work; remote GitHub ingestion activation awaits product secrets and proof runs.
 - Registry-backed dependency advisory review remains part of ongoing maintenance.
 
 ## Hosting boundary
 
-The repository and hosted Render/Neon portfolio demo are public. Automatic deployment remains disabled. External-CI ingestion, repository secrets, hosted integration tokens, and any paid resource require separate explicit human approval.
+The repository and hosted Render/Neon portfolio demo are public. Automatic deployment remains disabled. External-CI repository secrets and proof dispatch require explicit human action; no paid resource is introduced.

@@ -1,35 +1,33 @@
-# Checkpoint 9 plan: external CI ingestion
+# Checkpoint 9: external CI ingestion
 
-Status: plan only. No workflow, remote credential, integration token, GitHub secret, or deployment change is included in this checkpoint.
+Status: implementation complete locally; remote activation and proof are waiting for human secret configuration.
 
-## Objective
+## Implemented boundary
 
-Connect real browser automation to the existing public ingestion boundary:
+ShopSphere Cypress/Mochawesome and ServiceDesk Playwright/`playwright-json-v1` workflows now preserve real reports as GitHub Actions artifacts and submit them to the existing authenticated public endpoint. The envelope includes `productKey`, the explicit report format, `source=GITHUB_ACTIONS`, branch, commit, workflow/job identities and URLs, artifact URL, environment, and real timestamps.
 
-```text
-GitHub Actions
--> Cypress / Playwright
--> versioned report artifact
--> authenticated ingestion
--> Render API
--> Neon PostgreSQL
--> dashboard and Regression Delta
-```
+Tokens remain independent per product, stored as hashes, shown once when created, restricted to one active token, rotatable, and revocable. Missing, invalid, revoked, cross-product, and format-mismatched credentials/reports are rejected. Identical content for the same pipeline/job/format identity returns the original execution; different content returns HTTP 409.
 
-PocketWallet remains explicitly identified as `MOBILE_HARNESS_DEMO`.
+## Data truth model
 
-## Proposed delivery sequence
+- `SEEDED_DEMO` supplies clearly labeled sample history only.
+- `DEMO_PIPELINE` supplies real local runners or a non-persisting hosted flow preview.
+- `EXTERNAL_CI` is created only from authenticated `GITHUB_ACTIONS` reports.
 
-1. Define least-privilege, product-scoped ingestion tokens and an explicit rotation/revocation procedure.
-2. Add separate allow-listed workflows for ShopSphere Cypress and ServiceDesk Playwright; do not run them in the Render service.
-3. Generate the existing `mochawesome` and `playwright-json-v1` contracts and retain the raw reports as workflow artifacts.
-4. Submit reports to the public API only after the corresponding test command and report validation complete.
-5. Use stable pipeline/job identity so identical delivery is idempotent and changed content returns HTTP 409.
-6. Mark accepted runs as `EXTERNAL_CI`, preserving a visible distinction from `SEEDED_DEMO` and local `DEMO_PIPELINE` history.
-7. Add failure-safe workflow behavior: test failures may still publish a valid report, while missing/invalid reports must not fabricate an execution.
-8. Validate token rejection/revocation, adapter contracts, dashboard polling, execution details, Regression Delta, artifact retention, and secret redaction.
-9. Run all local gates and public-release scans before requesting a separately authorized remote configuration step.
+Only `EXTERNAL_CI` feeds the official latest product execution, aggregate approval, quality score, official freshness, and external-CI Regression Delta. The history screen may still show all origins with explicit labels. Hosted preview never creates a report or official execution.
 
-## Authorization boundary
+The hosted status remains `EXTERNAL_CI_INTEGRATION_PENDING` until both ShopSphere and ServiceDesk have at least one persisted external-CI execution. It becomes `EXTERNAL_CI_ACTIVE` from database evidence, not from configuration or a hard-coded claim.
 
-The implementation phase must not create personal access tokens. Creation of repository secrets, hosted integration tokens, workflow activation, or a Render redeploy requires explicit authorization at that time.
+## Workflow guarantees
+
+- Exact Node and pnpm versions with a frozen lockfile.
+- Manual demo triggers prevent documentation and ordinary code changes from starting browser runs.
+- Raw report artifact upload occurs before ingestion.
+- ShopSphere functional failure is ingested and preserved, then propagates a failed job conclusion.
+- Missing report, failed artifact upload, or failed ingestion fails the job.
+- No PAT, database credential, Render credential, or Neon credential is used by the workflows.
+- `platform.yml` validates push to `main`, pull request, and manual dispatch.
+
+## Remaining authorized boundary
+
+No hosted integration token or GitHub Actions secret is created by this implementation phase. Follow [the manual activation procedure](github-actions.md), then provide only `SECRETS_CONFIGURED`. Real workflow URLs, artifacts, ingestion results, dashboard state, and final completion declarations remain pending until the three proof runs finish.
