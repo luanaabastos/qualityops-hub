@@ -27,7 +27,7 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await page.getByRole('link', { name: 'View execution' }).click();
     await expect(page.getByRole('heading', { name: 'ShopSphere execution' })).toBeVisible();
     await expect(page.getByText('mochawesome', { exact: true })).toBeVisible();
-    await expect(page.getByText('Live demo run', { exact: true })).toBeVisible();
+    await expect(page.getByText('Local demo run', { exact: true })).toBeVisible();
     await expect(page.getByText('adds an item to the cart', { exact: true })).toBeVisible();
     const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Pipeline metadata' }) });
     await expect(metadata.getByRole('button', { name: 'Copy pipelineId' })).toBeVisible();
@@ -40,7 +40,7 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await page.goto('/');
     const card = page.locator('.product-card').filter({ hasText: 'ShopSphere' });
     await expect(card).toContainText('FAILED');
-    await expect(card).toContainText('Live demo run');
+    await expect(card).toContainText('Local demo run');
     await page.goto('/products/shopsphere');
     const delta = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Regression delta' }) });
     await expect(delta).toContainText('New failures');

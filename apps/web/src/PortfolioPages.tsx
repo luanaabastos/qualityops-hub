@@ -189,6 +189,7 @@ export function IntegrationsPage() {
               <div><dt>Report</dt><dd>{definition.report}</dd></div>
               <div><dt>Adapter</dt><dd><span className="pill ready">Ready</span></dd></div>
               <div><dt>Authentication</dt><dd>Product token</dd></div>
+              <div><dt>Origin</dt><dd>{product.isOfficial ? 'GitHub Actions' : product.origin === 'SEEDED_DEMO' ? 'Seeded demo history' : product.origin ? 'Local demo run' : 'No execution'}</dd></div>
               <div><dt>Last ingestion</dt><dd>{portfolioDate(product.lastExecutionAt)}</dd></div>
               <div><dt>Status</dt><dd>{product.status}</dd></div>
             </dl>

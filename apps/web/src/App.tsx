@@ -91,8 +91,15 @@ function originClass(origin: ExecutionOrigin) {
 
 function originLabel(origin: ExecutionOrigin) {
   if (origin === 'DEMO_PIPELINE') return 'Local demo run';
-  if (origin === 'EXTERNAL_CI') return 'External CI execution';
+  if (origin === 'EXTERNAL_CI') return 'GitHub Actions';
   return 'Seeded demo history';
+}
+
+function originSourceLabel(origin: ExecutionOrigin | null) {
+  if (origin === 'EXTERNAL_CI') return 'GITHUB_ACTIONS';
+  if (origin === 'DEMO_PIPELINE') return 'DEMO_PIPELINE';
+  if (origin === 'SEEDED_DEMO') return 'SEEDED_DEMO';
+  return 'No execution';
 }
 
 export function formatMetadataValue(key: string, value: string, origin: string) {
@@ -172,17 +179,17 @@ function OverviewPage() {
       <PageHeader
         eyebrow="Platform overview"
         title="QualityOps Hub"
-        description="Synthetic quality signals for three fictional products."
+        description="Official aggregate metrics come only from real external-CI reports; fictional products and seed history remain clearly labeled."
       />
 
       <section className="stats-grid" aria-label="Quality summary">
-        <StatCard label="Quality Score" value={dashboard.qualityScore === null ? 'No execution' : `${dashboard.qualityScore.toFixed(1)}%`} subtitle="Approval minus explicit infrastructure penalty" />
-        <StatCard label="Approval Rate" value={formatApproval(dashboard.approvalRate)} subtitle="Passed / executed" />
-        <StatCard label="Executed" value={String(dashboard.testsExecuted)} subtitle="Latest product runs" />
-        <StatCard label="Passed" value={String(dashboard.passed)} subtitle="Successful tests" />
-        <StatCard label="Failed" value={String(dashboard.failed)} subtitle="Functional failures" />
-        <StatCard label="Infrastructure Errors" value={String(dashboard.infrastructureErrors)} subtitle="Synthetic historical incidents" />
-        <StatCard label="Products" value={String(dashboard.products)} subtitle="Monitored demo products" />
+        <StatCard label="Quality Score" value={dashboard.qualityScore === null ? 'No official execution' : `${dashboard.qualityScore.toFixed(1)}%`} subtitle="Official CI approval minus infrastructure penalty" />
+        <StatCard label="Approval Rate" value={formatApproval(dashboard.approvalRate)} subtitle="Official CI passed / executed" />
+        <StatCard label="Executed" value={String(dashboard.testsExecuted)} subtitle="Latest official product runs" />
+        <StatCard label="Passed" value={String(dashboard.passed)} subtitle="Official successful tests" />
+        <StatCard label="Failed" value={String(dashboard.failed)} subtitle="Official functional failures" />
+        <StatCard label="Infrastructure Errors" value={String(dashboard.infrastructureErrors)} subtitle="Official runner incidents" />
+        <StatCard label="Products" value={String(dashboard.products)} subtitle={`${dashboard.officialProducts} with official CI history`} />
         <StatCard
           label="Automation Coverage"
           value={dashboard.automationCoverage === null ? 'Not configured' : `${dashboard.automationCoverage.toFixed(1)}%`}
@@ -254,7 +261,7 @@ function ProductsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Inventory" title="Products" description="Only synthetic portfolio data is shown here." />
+      <PageHeader eyebrow="Inventory" title="Products" description="Real external-CI runs are authoritative; synthetic fallback history remains explicitly labeled." />
       <section className="panel full-width" aria-labelledby="products-table-title">
         <div className="section-header">
           <h2 id="products-table-title">Monitored products</h2>
@@ -359,15 +366,15 @@ function ProductDetailPage() {
           <div><span>Execution count</span><strong>{executions.length}</strong></div>
           <div><span>Last run</span><strong>{formatDate(product.lastExecutionAt)}</strong></div>
           <div><span>Approval</span><strong>{formatApproval(product.approvalRate)}</strong></div>
-          <div><span>Freshness</span><strong>{product.freshness}</strong></div>
-          <div><span>Source</span><strong>{executions[0]?.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : executions[0]?.source ?? 'No execution'}</strong></div>
+          <div><span>{product.isOfficial ? 'Official freshness' : 'Demo freshness'}</span><strong>{product.freshness}</strong></div>
+          <div><span>Source</span><strong>{originSourceLabel(product.origin)}</strong></div>
         </div>
       </section>
 
       <section className="panel" aria-labelledby="regression-title">
         <div className="section-header">
           <h2 id="regression-title">Regression delta</h2>
-          <span>Compared by stable scenario identity</span>
+          <span>{product.isOfficial ? 'Compared with prior GitHub Actions history' : 'Compared within the same demo origin'}</span>
         </div>
         <div className="delta-grid">
           <div><span>New failures</span><strong>{delta.newFailures}</strong></div>
@@ -582,6 +589,7 @@ function PipelineLabPage() {
   const [error, setError] = useState<string | null>(null);
   const busy = run !== null && !['COMPLETED', 'FAILED', 'ERROR'].includes(run.state);
   const hostedPreview = demoConfig?.runnerMode === 'hosted-preview';
+  const externalCiActive = demoConfig?.externalCiStatus === 'EXTERNAL_CI_ACTIVE';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -642,8 +650,10 @@ function PipelineLabPage() {
       />
       {hostedPreview ? (
         <div className="notice warning-notice">
-          <strong>External browser execution — EXTERNAL_CI_INTEGRATION_PENDING</strong>
-          <p>Browser execution will be performed by external CI after that integration is configured. This hosted free-tier preview does not start Cypress or Playwright, generate test reports, or create official execution history. PocketWallet remains explicitly modeled as MOBILE_HARNESS_DEMO.</p>
+          <strong>External browser execution — {demoConfig?.externalCiStatus}</strong>
+          <p>{externalCiActive
+            ? 'Real Cypress and Playwright reports are supplied by GitHub Actions. This hosted free-tier preview still starts no browser and creates no official execution.'
+            : 'Browser execution will be performed by external CI after that integration is configured. This hosted free-tier preview does not start Cypress or Playwright, generate test reports, or create official execution history.'} PocketWallet remains explicitly modeled as MOBILE_HARNESS_DEMO.</p>
         </div>
       ) : null}
       <div className="notice warning-notice"><strong>Pipeline Lab runs synthetic portfolio scenarios only.</strong> It accepts no commands, URLs, environment values, or filesystem paths.</div>

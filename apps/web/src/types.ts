@@ -23,6 +23,7 @@ export type ProductSummary = {
   commit: string;
   statusLabel: string;
   origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE' | 'EXTERNAL_CI' | null;
+  isOfficial: boolean;
   syntheticData: true;
 };
 
@@ -36,6 +37,7 @@ export type DashboardResponse = {
   products: number;
   productsWithRecentExecution: number;
   productsStale: number;
+  officialProducts: number;
   automationCoverage: number | null;
   latestRegression: string | null;
   productsSummary: ProductSummary[];
@@ -79,14 +81,14 @@ export type DemoRun = {
   progressMessage: string;
   executionId: string | null;
   runnerMode: 'local' | 'hosted-preview';
-  previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
+  previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | 'EXTERNAL_CI_ACTIVE' | null;
   error: string | null;
 };
 
 export type DemoConfig = {
   enabled: true;
   runnerMode: 'local' | 'hosted-preview';
-  externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
+  externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | 'EXTERNAL_CI_ACTIVE' | null;
 };
 
 export type PlatformReadiness = {
