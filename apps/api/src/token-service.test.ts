@@ -39,6 +39,7 @@ describe('integration token lifecycle', () => {
     expect(double.stored[0].hash).not.toContain(created.token);
     expect(await service.authenticate(created.token, 'shopsphere')).toBe(true);
     expect(await service.authenticate(created.token, 'servicedesk')).toBe(false);
+    await expect(service.create('shopsphere')).rejects.toThrow('already exists');
   });
 
   it('rotation and revocation invalidate earlier raw tokens', async () => {

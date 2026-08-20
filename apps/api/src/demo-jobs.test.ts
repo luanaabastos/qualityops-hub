@@ -60,6 +60,7 @@ describe('explicit demo runner modes', () => {
       const updates: Array<Record<string, unknown>> = [];
       const repository = {
         failInterruptedDemoRuns: vi.fn(async () => 0),
+        externalCiStatus: vi.fn(async () => 'EXTERNAL_CI_INTEGRATION_PENDING'),
         createDemoRun: vi.fn(async (input: Record<string, unknown>) => {
           storedRun = {
             runId: input.id,

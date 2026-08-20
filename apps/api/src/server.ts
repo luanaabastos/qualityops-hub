@@ -177,6 +177,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     if (!product.success) return reply.code(404).send({ error: 'Product not found' });
     try {
       const body = reportIngestionSchema.parse(request.body);
+      if (body.productKey && body.productKey !== product.data) {
+        return reply.code(400).send({ error: 'Payload productKey does not match the endpoint product.' });
+      }
       const rawToken = bearerToken(request.headers.authorization);
       const isDemoSystem = rawToken !== null
         && body.source === 'DEMO_PIPELINE'
@@ -208,7 +211,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     app.get('/api/demo/config', async () => ({
       enabled: true,
       runnerMode: config.demoRunnerMode,
-      externalCiStatus: config.demoRunnerMode === 'hosted-preview' ? 'EXTERNAL_CI_INTEGRATION_PENDING' : null
+      externalCiStatus: config.demoRunnerMode === 'hosted-preview' ? await repository.externalCiStatus() : null
     }));
     app.post('/api/demo/runs', { bodyLimit: 4 * 1024 }, async (request, reply) => {
       const parsed = demoRunRequestSchema.safeParse(request.body);

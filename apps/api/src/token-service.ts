@@ -6,6 +6,13 @@ import type { QualityRepository } from './repository.js';
 const scrypt = promisify(scryptCallback);
 const tokenPattern = /^qoh_(shopsphere|servicedesk|pocketwallet)_([0-9a-f-]{36})_([A-Za-z0-9_-]+)$/;
 
+export class ActiveIntegrationTokenExistsError extends Error {
+  constructor(readonly productKey: ProductKey) {
+    super(`An active integration token already exists for ${productKey}. Rotate it instead of creating another token.`);
+    this.name = 'ActiveIntegrationTokenExistsError';
+  }
+}
+
 async function derive(raw: string, salt: string): Promise<Buffer> {
   return scrypt(raw, salt, 32) as Promise<Buffer>;
 }
@@ -14,6 +21,9 @@ export class IntegrationTokenService {
   constructor(private readonly repository: QualityRepository) {}
 
   async create(productKey: ProductKey, rotatedFromId?: string | null): Promise<{ id: string; token: string }> {
+    if (await this.repository.latestActiveToken(productKey)) {
+      throw new ActiveIntegrationTokenExistsError(productKey);
+    }
     const id = randomUUID();
     const secret = randomBytes(32).toString('base64url');
     const token = `qoh_${productKey}_${id}_${secret}`;

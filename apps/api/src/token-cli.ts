@@ -6,9 +6,11 @@ import { IntegrationTokenService } from './token-service.js';
 const action = process.argv[2];
 const productIndex = process.argv.indexOf('--product');
 const product = productKeySchema.safeParse(productIndex >= 0 ? process.argv[productIndex + 1] : undefined);
+const acknowledged = process.argv.includes('--acknowledge-plaintext-once');
 
-if (!['create', 'rotate', 'revoke'].includes(action ?? '') || !product.success) {
-  console.error('Usage: <create|rotate|revoke> --product <shopsphere|servicedesk|pocketwallet>');
+if (!['create', 'rotate', 'revoke'].includes(action ?? '') || !product.success || (action !== 'revoke' && !acknowledged)) {
+  console.error('Usage: <create|rotate> --product <shopsphere|servicedesk|pocketwallet> --acknowledge-plaintext-once');
+  console.error('   or: revoke --product <shopsphere|servicedesk|pocketwallet>');
   process.exit(1);
 }
 

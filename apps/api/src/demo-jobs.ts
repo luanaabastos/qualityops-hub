@@ -274,19 +274,24 @@ export class HostedPreviewJobService implements DemoJobController {
 
   async enqueue(input: DemoJobInput): Promise<Record<string, unknown>> {
     const runId = randomUUID();
+    const externalCiStatus = await this.repository.externalCiStatus();
     await this.repository.createDemoRun({
       id: runId,
       ...input,
-      artifactPath: path.posix.join('preview', 'external-ci-pending', runId),
+      artifactPath: path.posix.join('preview', 'external-ci', runId),
       runnerMode: 'hosted-preview',
-      previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING'
+      previewStatus: externalCiStatus
     });
-    setImmediate(() => void this.advance(runId, input));
+    setImmediate(() => void this.advance(runId, input, externalCiStatus));
     this.options.log?.({ event: 'demo_preview_queued', runId, product: input.product, status: 'QUEUED' });
     return (await this.repository.getDemoRun(runId))!;
   }
 
-  private async advance(runId: string, input: DemoJobInput): Promise<void> {
+  private async advance(
+    runId: string,
+    input: DemoJobInput,
+    externalCiStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | 'EXTERNAL_CI_ACTIVE'
+  ): Promise<void> {
     try {
       await this.repository.updateDemoRun(runId, {
         state: 'RUNNING',
@@ -300,7 +305,7 @@ export class HostedPreviewJobService implements DemoJobController {
       await this.wait();
       await this.repository.updateDemoRun(runId, {
         state: 'COMPLETED',
-        message: 'External CI integration pending; no official execution was created'
+        message: `${externalCiStatus === 'EXTERNAL_CI_ACTIVE' ? 'External CI is active' : 'External CI integration is pending'}; no official execution was created by this preview`
       });
       this.options.log?.({ event: 'demo_preview_completed', runId, product: input.product, status: 'COMPLETED' });
     } catch {

@@ -100,13 +100,39 @@ integrationDescribe('API and authenticated report ingestion', () => {
     expect(rejected.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  it('rejects missing, invalid and revoked bearer tokens', async () => {
+  it('rejects missing, invalid, revoked and wrong-product bearer tokens', async () => {
     const body = payload('shopsphere');
     expect((await app.inject({ method: 'POST', url: '/api/products/shopsphere/test-reports', payload: body })).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/api/products/shopsphere/test-reports', headers: { authorization: 'Bearer invalid' }, payload: body })).statusCode).toBe(401);
     const created = await tokens.create('shopsphere');
     await tokens.revoke('shopsphere');
     expect((await app.inject({ method: 'POST', url: '/api/products/shopsphere/test-reports', headers: { authorization: `Bearer ${created.token}` }, payload: body })).statusCode).toBe(401);
+    const wrongProduct = await tokens.create('shopsphere');
+    expect((await app.inject({
+      method: 'POST',
+      url: '/api/products/servicedesk/test-reports',
+      headers: { authorization: `Bearer ${wrongProduct.token}` },
+      payload: payload('servicedesk')
+    })).statusCode).toBe(401);
+  });
+
+  it('rejects endpoint/payload product mismatches and product-incompatible report formats', async () => {
+    const created = await tokens.create('shopsphere');
+    const headers = { authorization: `Bearer ${created.token}` };
+    const mismatchedProduct = await app.inject({
+      method: 'POST',
+      url: '/api/products/shopsphere/test-reports',
+      headers,
+      payload: { ...payload('shopsphere'), productKey: 'servicedesk' }
+    });
+    expect(mismatchedProduct.statusCode).toBe(400);
+    const wrongFormat = await app.inject({
+      method: 'POST',
+      url: '/api/products/shopsphere/test-reports',
+      headers,
+      payload: { ...payload('shopsphere'), productKey: 'shopsphere', reportFormat: 'playwright-json-v1' }
+    });
+    expect(wrongFormat.statusCode).toBe(400);
   });
 
   it('accepts the runtime-only Pipeline Lab credential without persisting it', async () => {
@@ -152,7 +178,7 @@ integrationDescribe('API and authenticated report ingestion', () => {
 
   it('returns the same execution for identical content and 409 for changed content', async () => {
     const created = await tokens.create('shopsphere');
-    const body = payload('shopsphere', 'idempotent-pipeline');
+    const body = { ...payload('shopsphere', 'idempotent-pipeline'), productKey: 'shopsphere', source: 'GITHUB_ACTIONS' };
     const headers = { authorization: `Bearer ${created.token}` };
     const replayResponses = await Promise.all([
       app.inject({ method: 'POST', url: '/api/products/shopsphere/test-reports', headers, payload: body }),
@@ -180,17 +206,54 @@ integrationDescribe('API and authenticated report ingestion', () => {
     expect(second.json().executionId).toBe(first.json().executionId);
   });
 
-  it('keeps seeded history distinct from authenticated external CI ingestion', async () => {
+  it('uses only GitHub Actions runs for official aggregates and keeps same-origin regression history', async () => {
     await seedDemoHistory(database, repository);
-    const created = await tokens.create('servicedesk');
-    const body = { ...payload('servicedesk'), source: 'GITHUB_ACTIONS' };
-    const response = await app.inject({
+    const seededDashboard = await app.inject({ method: 'GET', url: '/api/dashboard' });
+    expect(seededDashboard.json()).toMatchObject({
+      qualityScore: null,
+      approvalRate: null,
+      testsExecuted: 0,
+      officialProducts: 0
+    });
+    expect(seededDashboard.json().productsSummary.every((product: { isOfficial: boolean }) => !product.isOfficial)).toBe(true);
+
+    const serviceToken = await tokens.create('servicedesk');
+    const serviceBody = { ...payload('servicedesk'), productKey: 'servicedesk', source: 'GITHUB_ACTIONS' };
+    const serviceResponse = await app.inject({
       method: 'POST',
       url: '/api/products/servicedesk/test-reports',
-      headers: { authorization: `Bearer ${created.token}` },
-      payload: body
+      headers: { authorization: `Bearer ${serviceToken.token}` },
+      payload: serviceBody
     });
-    expect(response.statusCode).toBe(201);
+    expect(serviceResponse.statusCode).toBe(201);
+    const serviceExecution = await app.inject({ method: 'GET', url: `/api/executions/${serviceResponse.json().executionId}` });
+    expect(serviceExecution.json().execution).toMatchObject({
+      origin: 'EXTERNAL_CI',
+      regressionDelta: { newTests: 1, removedTests: 0 }
+    });
+    const partialDashboard = await app.inject({ method: 'GET', url: '/api/dashboard' });
+    expect(partialDashboard.json()).toMatchObject({ testsExecuted: 1, passed: 1, officialProducts: 1 });
+    expect(await repository.externalCiStatus()).toBe('EXTERNAL_CI_INTEGRATION_PENDING');
+
+    const shopToken = await tokens.create('shopsphere');
+    const shopResponse = await app.inject({
+      method: 'POST',
+      url: '/api/products/shopsphere/test-reports',
+      headers: { authorization: `Bearer ${shopToken.token}` },
+      payload: { ...payload('shopsphere'), productKey: 'shopsphere', source: 'GITHUB_ACTIONS' }
+    });
+    expect(shopResponse.statusCode).toBe(201);
+    expect(await repository.externalCiStatus()).toBe('EXTERNAL_CI_ACTIVE');
+    const activePreviewApp = await buildApp({
+      database: new Database(testDatabaseUrl),
+      demoEnabled: true,
+      seed: false,
+      demoJobs: new HostedPreviewJobService(repository, { transitionDelayMs: 0 }),
+      config: { demoRunnerMode: 'hosted-preview' }
+    });
+    const activeConfig = await activePreviewApp.inject({ method: 'GET', url: '/api/demo/config' });
+    expect(activeConfig.json().externalCiStatus).toBe('EXTERNAL_CI_ACTIVE');
+    await activePreviewApp.close();
     const origins = await database.pool.query('SELECT DISTINCT origin FROM test_executions ORDER BY origin');
     expect(origins.rows.map((row) => row.origin)).toEqual(['EXTERNAL_CI', 'SEEDED_DEMO']);
   });

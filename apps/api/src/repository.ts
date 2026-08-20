@@ -82,7 +82,7 @@ export class QualityRepository {
       const productId = productResult.rows[0]?.id;
       if (!productId) throw new Error(`Unknown product ${execution.productKey}`);
 
-      const previousCases = await this.previousCases(client, productId);
+      const previousCases = await this.previousCases(client, productId, execution.origin);
       const currentCases = execution.suites.flatMap((suite) => suite.tests);
       const regressionDelta = calculateRegressionDelta(previousCases, currentCases);
       const id = randomUUID();
@@ -142,15 +142,21 @@ export class QualityRepository {
     }
   }
 
-  private async previousCases(client: pg.PoolClient, productId: string): Promise<Array<{ stableKey: string; status: string }>> {
+  private async previousCases(
+    client: pg.PoolClient,
+    productId: string,
+    origin: NormalizedExecution['origin']
+  ): Promise<Array<{ stableKey: string; status: string }>> {
     const result = await client.query<{ stable_key: string; status: string }>(
       `SELECT tc.stable_key, tc.status
        FROM test_case_results tc
        JOIN test_suites ts ON ts.id = tc.suite_id
        WHERE ts.execution_id = (
-         SELECT id FROM test_executions WHERE product_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1
+         SELECT id FROM test_executions
+         WHERE product_id = $1 AND origin = $2
+         ORDER BY created_at DESC, id DESC LIMIT 1
        )`,
-      [productId]
+      [productId, origin]
     );
     return result.rows.map((row) => ({ stableKey: row.stable_key, status: row.status }));
   }
@@ -162,7 +168,8 @@ export class QualityRepository {
               pm.branch, pm.pipeline_id, pm.commit_sha
        FROM products p
        LEFT JOIN LATERAL (
-         SELECT * FROM test_executions x WHERE x.product_id=p.id ORDER BY x.created_at DESC, x.id DESC LIMIT 1
+         SELECT * FROM test_executions x WHERE x.product_id=p.id
+         ORDER BY CASE WHEN x.origin='EXTERNAL_CI' THEN 0 ELSE 1 END, x.created_at DESC, x.id DESC LIMIT 1
        ) e ON TRUE
        LEFT JOIN pipeline_metadata pm ON pm.execution_id=e.id
        ORDER BY p.name`
@@ -194,6 +201,7 @@ export class QualityRepository {
         commit: row.commit_sha ?? 'not-executed',
         statusLabel: row.execution_status === 'ERROR' ? 'Infrastructure error — tests did not execute' : status === 'NO_EXECUTION' ? 'No execution' : 'Latest persisted execution',
         origin: row.origin ?? null,
+        isOfficial: row.origin === 'EXTERNAL_CI',
         syntheticData: true
       };
     });
@@ -201,11 +209,12 @@ export class QualityRepository {
 
   async dashboard(): Promise<Record<string, unknown>> {
     const products = await this.listProducts();
-    const executable = products.filter((product) => number(product.executed) > 0);
+    const officialProducts = products.filter((product) => product.origin === 'EXTERNAL_CI');
+    const executable = officialProducts.filter((product) => number(product.executed) > 0);
     const executed = executable.reduce((sum, product) => sum + number(product.executed), 0);
     const passed = executable.reduce((sum, product) => sum + number(product.passed), 0);
     const failed = executable.reduce((sum, product) => sum + number(product.failed), 0);
-    const errors = products.reduce((sum, product) => sum + number(product.infrastructureErrors), 0);
+    const errors = officialProducts.reduce((sum, product) => sum + number(product.infrastructureErrors), 0);
     return {
       qualityScore: calculateQualityScore(passed, executed, errors),
       approvalRate: calculateApprovalRate(passed, executed),
@@ -214,10 +223,11 @@ export class QualityRepository {
       failed,
       infrastructureErrors: errors,
       products: products.length,
-      productsWithRecentExecution: products.filter((product) => product.freshness === 'FRESH').length,
-      productsStale: products.filter((product) => product.freshness !== 'FRESH').length,
+      productsWithRecentExecution: officialProducts.filter((product) => product.freshness === 'FRESH').length,
+      productsStale: products.length - officialProducts.filter((product) => product.freshness === 'FRESH').length,
       automationCoverage: demoAutomationCoverageSummary.percentage,
-      latestRegression: products.map((product) => product.lastExecutionAt as string | null).filter(Boolean).sort().at(-1) ?? null,
+      latestRegression: officialProducts.map((product) => product.lastExecutionAt as string | null).filter(Boolean).sort().at(-1) ?? null,
+      officialProducts: officialProducts.length,
       productsSummary: products
     };
   }
@@ -228,12 +238,16 @@ export class QualityRepository {
     if (!product) return null;
     const latest = await this.database.pool.query<{ regression_delta: unknown }>(
       `SELECT e.regression_delta FROM test_executions e JOIN products p ON p.id=e.product_id
-       WHERE p.product_key=$1 ORDER BY e.created_at DESC, e.id DESC LIMIT 1`, [key]
+       WHERE p.product_key=$1
+       ORDER BY CASE WHEN e.origin='EXTERNAL_CI' THEN 0 ELSE 1 END, e.created_at DESC, e.id DESC LIMIT 1`, [key]
     );
     const suites = await this.database.pool.query(
       `SELECT s.name, s.status, s.total, s.executed, s.passed, s.failed, s.skipped, s.errors
        FROM test_suites s JOIN test_executions e ON e.id=s.execution_id JOIN products p ON p.id=e.product_id
-       WHERE p.product_key=$1 AND e.id=(SELECT x.id FROM test_executions x WHERE x.product_id=p.id ORDER BY x.created_at DESC, x.id DESC LIMIT 1)
+       WHERE p.product_key=$1 AND e.id=(
+         SELECT x.id FROM test_executions x WHERE x.product_id=p.id
+         ORDER BY CASE WHEN x.origin='EXTERNAL_CI' THEN 0 ELSE 1 END, x.created_at DESC, x.id DESC LIMIT 1
+       )
        ORDER BY s.position`, [key]
     );
     return {
@@ -372,6 +386,18 @@ export class QualityRepository {
     return result.rowCount ?? 0;
   }
 
+  async externalCiStatus(): Promise<'EXTERNAL_CI_INTEGRATION_PENDING' | 'EXTERNAL_CI_ACTIVE'> {
+    const result = await this.database.pool.query<{ products: string }>(
+      `SELECT COUNT(DISTINCT p.product_key)::text products
+       FROM test_executions e
+       JOIN products p ON p.id=e.product_id
+       WHERE e.origin='EXTERNAL_CI' AND p.product_key IN ('shopsphere','servicedesk')`
+    );
+    return Number(result.rows[0]?.products ?? 0) === 2
+      ? 'EXTERNAL_CI_ACTIVE'
+      : 'EXTERNAL_CI_INTEGRATION_PENDING';
+  }
+
   async createDemoRun(input: {
     id: string;
     product: ProductKey;
@@ -379,7 +405,7 @@ export class QualityRepository {
     mode: string;
     artifactPath: string;
     runnerMode: 'local' | 'hosted-preview';
-    previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | null;
+    previewStatus: 'EXTERNAL_CI_INTEGRATION_PENDING' | 'EXTERNAL_CI_ACTIVE' | null;
   }): Promise<void> {
     await this.database.pool.query(
       `INSERT INTO demo_runs(

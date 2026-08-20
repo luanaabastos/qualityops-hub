@@ -24,6 +24,7 @@ const optionalUrlSchema = z.union([z.string().url(), z.literal(''), z.null()]).t
 const optionalIdentitySchema = z.union([z.string().min(1).max(200), z.null()]).default(null);
 
 export const reportIngestionSchema = z.object({
+  productKey: productKeySchema.optional(),
   reportFormat: reportFormatSchema,
   source: pipelineSourceSchema,
   suiteType: suiteTypeSchema,
