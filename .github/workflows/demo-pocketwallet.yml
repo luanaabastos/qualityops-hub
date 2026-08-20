@@ -16,7 +16,6 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.34.5 --activate
       - run: pnpm install --frozen-lockfile
       - run: node demo-runners/pocketwallet/harness.mjs SUCCESS artifacts/demo-runs/ci-pocketwallet
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: pocketwallet-mobile-e2e-json-v1, path: artifacts/demo-runs/ci-pocketwallet/raw-report.json }
-      # This workflow intentionally validates and uploads the report only.
-      # Remote ingestion requires a separately deployed public API and is a later milestone.
+      # PocketWallet remains an explicit mobile harness artifact and is not external browser CI.

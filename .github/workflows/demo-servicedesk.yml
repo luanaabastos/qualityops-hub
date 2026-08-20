@@ -2,11 +2,13 @@ name: Demo report - ServiceDesk
 
 permissions:
   contents: read
+  actions: read
 
 on: workflow_dispatch
 
 jobs:
   playwright-report:
+    name: ServiceDesk Playwright
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -17,11 +19,62 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright and produce versioned report
+        id: runner
         run: |
+          started_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ')
           pnpm --filter @qualityops-hub/web dev --host 127.0.0.1 > web.log 2>&1 &
           curl --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:5173/demo-targets/servicedesk.html
+          set +e
           node demo-runners/servicedesk/run.mjs SUCCESS artifacts/demo-runs/ci-servicedesk
-      - uses: actions/upload-artifact@v4
+          runner_exit=$?
+          set -e
+          finished_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ')
+          if [ -f artifacts/demo-runs/ci-servicedesk/raw-report.json ]; then
+            report_ready=true
+          else
+            report_ready=false
+          fi
+          {
+            echo "started_at=$started_at"
+            echo "finished_at=$finished_at"
+            echo "runner_exit=$runner_exit"
+            echo "report_ready=$report_ready"
+          } >> "$GITHUB_OUTPUT"
+      - name: Preserve Playwright report
+        id: artifact
+        if: ${{ always() && steps.runner.outputs.report_ready == 'true' }}
+        uses: actions/upload-artifact@v7
         with: { name: servicedesk-playwright-json-v1, path: artifacts/demo-runs/ci-servicedesk/raw-report.json }
-      # This workflow intentionally validates and uploads the report only.
-      # Remote ingestion requires a separately deployed public API and is a later milestone.
+      - name: Ingest report into QualityOps Hub
+        id: ingestion
+        if: ${{ always() && steps.runner.outputs.report_ready == 'true' && steps.artifact.outcome == 'success' }}
+        env:
+          QUALITYOPS_URL: https://qualityops-hub.onrender.com
+          QUALITYOPS_TOKEN: ${{ secrets.QUALITYOPS_SERVICEDESK_TOKEN }}
+          QUALITYOPS_PRODUCT: servicedesk
+          QUALITYOPS_REPORT_FORMAT: playwright-json-v1
+          QUALITYOPS_REPORT_PATH: artifacts/demo-runs/ci-servicedesk/raw-report.json
+          QUALITYOPS_JOB_NAME: ServiceDesk Playwright
+          QUALITYOPS_ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+          QUALITYOPS_STARTED_AT: ${{ steps.runner.outputs.started_at }}
+          QUALITYOPS_FINISHED_AT: ${{ steps.runner.outputs.finished_at }}
+          QUALITYOPS_MODE: SUCCESS
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci-ingest-report.mjs
+      - name: Preserve the runner conclusion
+        if: always()
+        env:
+          REPORT_READY: ${{ steps.runner.outputs.report_ready }}
+          RUNNER_EXIT: ${{ steps.runner.outputs.runner_exit }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+          INGESTION_OUTCOME: ${{ steps.ingestion.outcome }}
+        run: |
+          if [ "$REPORT_READY" != "true" ]; then
+            echo "The Playwright report was not produced."
+            exit 1
+          fi
+          if [ "$ARTIFACT_OUTCOME" != "success" ] || [ "$INGESTION_OUTCOME" != "success" ]; then
+            echo "The report was not fully preserved and ingested."
+            exit 1
+          fi
+          exit "${RUNNER_EXIT:-1}"

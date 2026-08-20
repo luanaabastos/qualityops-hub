@@ -33,4 +33,7 @@ const code = await new Promise((resolve, reject) => {
   child.once('exit', (exitCode) => resolve(exitCode ?? 1));
 });
 const reportExists = await fs.access(path.join(output, 'raw-report.json')).then(() => true).catch(() => false);
-if (!reportExists || (mode === 'SUCCESS' && code !== 0)) process.exit(Number(code) || 1);
+const preserveFunctionalFailureExit = process.env.QUALITYOPS_CI_PRESERVE_FAILURE_EXIT === 'true';
+if (!reportExists || (mode === 'SUCCESS' && code !== 0) || (mode === 'FUNCTIONAL_FAILURE' && preserveFunctionalFailureExit && code !== 0)) {
+  process.exit(Number(code) || 1);
+}

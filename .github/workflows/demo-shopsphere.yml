@@ -2,11 +2,23 @@ name: Demo report - ShopSphere
 
 permissions:
   contents: read
+  actions: read
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Deterministic ShopSphere scenario
+        required: true
+        default: SUCCESS
+        type: choice
+        options:
+          - SUCCESS
+          - FUNCTIONAL_FAILURE
 
 jobs:
   cypress-report:
+    name: ShopSphere Cypress
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -16,11 +28,65 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.34.5 --activate
       - run: pnpm install --frozen-lockfile
       - name: Run Cypress and produce real Mochawesome
+        id: runner
+        env:
+          QUALITYOPS_MODE: ${{ inputs.mode }}
+          QUALITYOPS_CI_PRESERVE_FAILURE_EXIT: "true"
         run: |
+          started_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ')
           pnpm --filter @qualityops-hub/web dev --host 127.0.0.1 > web.log 2>&1 &
           curl --retry 30 --retry-connrefused --retry-delay 1 http://127.0.0.1:5173/demo-targets/shopsphere.html
-          node demo-runners/shopsphere/run.mjs SUCCESS artifacts/demo-runs/ci-shopsphere
-      - uses: actions/upload-artifact@v4
+          set +e
+          node demo-runners/shopsphere/run.mjs "$QUALITYOPS_MODE" artifacts/demo-runs/ci-shopsphere
+          runner_exit=$?
+          set -e
+          finished_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3NZ')
+          if [ -f artifacts/demo-runs/ci-shopsphere/raw-report.json ]; then
+            report_ready=true
+          else
+            report_ready=false
+          fi
+          {
+            echo "started_at=$started_at"
+            echo "finished_at=$finished_at"
+            echo "runner_exit=$runner_exit"
+            echo "report_ready=$report_ready"
+          } >> "$GITHUB_OUTPUT"
+      - name: Preserve Mochawesome report
+        id: artifact
+        if: ${{ always() && steps.runner.outputs.report_ready == 'true' }}
+        uses: actions/upload-artifact@v7
         with: { name: shopsphere-mochawesome, path: artifacts/demo-runs/ci-shopsphere/raw-report.json }
-      # This workflow intentionally validates and uploads the report only.
-      # Remote ingestion requires a separately deployed public API and is a later milestone.
+      - name: Ingest report into QualityOps Hub
+        id: ingestion
+        if: ${{ always() && steps.runner.outputs.report_ready == 'true' && steps.artifact.outcome == 'success' }}
+        env:
+          QUALITYOPS_URL: https://qualityops-hub.onrender.com
+          QUALITYOPS_TOKEN: ${{ secrets.QUALITYOPS_SHOPSPHERE_TOKEN }}
+          QUALITYOPS_PRODUCT: shopsphere
+          QUALITYOPS_REPORT_FORMAT: mochawesome
+          QUALITYOPS_REPORT_PATH: artifacts/demo-runs/ci-shopsphere/raw-report.json
+          QUALITYOPS_JOB_NAME: ShopSphere Cypress
+          QUALITYOPS_ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+          QUALITYOPS_STARTED_AT: ${{ steps.runner.outputs.started_at }}
+          QUALITYOPS_FINISHED_AT: ${{ steps.runner.outputs.finished_at }}
+          QUALITYOPS_MODE: ${{ inputs.mode }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci-ingest-report.mjs
+      - name: Preserve the runner conclusion
+        if: always()
+        env:
+          REPORT_READY: ${{ steps.runner.outputs.report_ready }}
+          RUNNER_EXIT: ${{ steps.runner.outputs.runner_exit }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+          INGESTION_OUTCOME: ${{ steps.ingestion.outcome }}
+        run: |
+          if [ "$REPORT_READY" != "true" ]; then
+            echo "The Cypress report was not produced."
+            exit 1
+          fi
+          if [ "$ARTIFACT_OUTCOME" != "success" ] || [ "$INGESTION_OUTCOME" != "success" ]; then
+            echo "The report was not fully preserved and ingested."
+            exit 1
+          fi
+          exit "${RUNNER_EXIT:-1}"
