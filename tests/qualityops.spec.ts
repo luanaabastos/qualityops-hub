@@ -117,7 +117,20 @@ test.describe('QualityOps Hub portfolio presentation', () => {
       { width: 390, height: 844 },
       { width: 320, height: 568 }
     ];
-    const routes = ['/', '/pipeline-lab', '/coverage', '/integrations', '/automation-plan', '/video-evidence', '/documentation'];
+    const routes = [
+      '/',
+      '/pipeline-lab',
+      '/products',
+      '/products/shopsphere',
+      '/executions',
+      '/coverage',
+      '/integrations',
+      '/automation-plan',
+      '/video-evidence',
+      '/documentation',
+      '/how-it-works',
+      '/platform-health'
+    ];
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
       for (const route of routes) {
@@ -142,5 +155,58 @@ test.describe('QualityOps Hub portfolio presentation', () => {
     await expect(page.getByRole('dialog', { name: 'Sidebar navigation' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(menu).toBeFocused();
+  });
+
+  test('primary pages expose semantic headings, labeled controls and visible keyboard focus', async ({ page }) => {
+    const routes = [
+      '/',
+      '/pipeline-lab',
+      '/products',
+      '/executions',
+      '/coverage',
+      '/integrations',
+      '/automation-plan',
+      '/video-evidence',
+      '/documentation',
+      '/how-it-works',
+      '/platform-health'
+    ];
+
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.locator('h1')).toHaveCount(1);
+      const headingLevels = await page.locator('h1, h2, h3, h4, h5, h6').evaluateAll((headings) => (
+        headings.map((heading) => Number(heading.tagName.slice(1)))
+      ));
+      expect(headingLevels[0], `${route} starts with h1`).toBe(1);
+      headingLevels.slice(1).forEach((level, index) => {
+        expect(level - headingLevels[index], `${route} heading order`).toBeLessThanOrEqual(1);
+      });
+
+      const unnamedControls = await page.locator('button, select, input, textarea').evaluateAll((controls) => (
+        controls.filter((control) => {
+          const element = control as HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          const labels = 'labels' in element ? element.labels : null;
+          return !element.getAttribute('aria-label')
+            && !element.getAttribute('aria-labelledby')
+            && !element.textContent?.trim()
+            && (!labels || labels.length === 0);
+        }).map((control) => control.outerHTML)
+      ));
+      expect(unnamedControls, `${route} labeled controls`).toEqual([]);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/');
+    await page.keyboard.press('Tab');
+    const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+    await expect(skipLink).toBeFocused();
+    await expect(skipLink).toBeVisible();
+    const focusStyle = await skipLink.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+    });
+    expect(focusStyle.outlineStyle).not.toBe('none');
+    expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(3);
   });
 });
