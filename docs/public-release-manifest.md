@@ -1,63 +1,59 @@
-# Public portfolio manifest
+# Public portfolio release manifest
 
-This manifest preserves the initial sanitized public-release record and tracks the current portfolio readiness state.
+This manifest records the QualityOps Hub v1.0.0 release-candidate boundary. It does not create a tag or publish a GitHub Release.
 
-- Sanitized rewrite base HEAD: `cd7e89a19918f823bdd18ed74d68c4588b35df8b`
-- Audited release content HEAD: `1c315dab9fa6a73ca08f9a4a980bbc3a79a803e3`
-- Audited release content tree: `abb1eb6039776ea2ef791f92ee09856f66e96622`
-- Commits after metadata rewrite: 11
-- Commits after MIT release content: 12
+- Release-preparation base HEAD: `f79d4c92f9fb77bbca6c0496b2071d9faf974539`
+- Branch: `main`
 - Runtime: Node.js `20.20.1`, pnpm `10.34.5`
-- Package status: private monorepo, version `0.1.0`
-- Public status: **Portfolio Preview**
-- Release gate: `PUBLIC_RELEASE_READY`
-- Publication status: `PUBLICATION_APPROVAL_REQUIRED`
+- Package status: private monorepo packages, version `1.0.0`
+- Public status: **v1.0.0 release candidate**
 - License: `MIT`
 - `LICENSE=MIT`
 - Repository: `https://github.com/luanaabastos/qualityops-hub`
-- Current product milestone: Checkpoint 9 external-CI implementation, pending human activation
+- Live demo: `https://qualityops-hub.onrender.com`
+- External CI: `EXTERNAL_CI_ACTIVE`
+- Tag: `NOT_CREATED`
+- Release: `NOT_PUBLISHED`
 
-The manifest commit changes HEAD by definition without changing the release facts above. The final HEAD is reported by `git rev-parse HEAD` after this file is committed.
+The final release-preparation HEAD is reported after the documentation commits are created. The tag and GitHub Release require separate human approval.
 
-## Git history sanitization
+## Real CI evidence
 
-All reachable commits use the authorized public identity for both author and committer. The `LEGACY_NON_PUBLIC_GIT_IDENTITY` metadata was replaced without changing commit messages, commit order, author/committer timestamps, per-commit trees, or the final pre-release tree.
+| Scenario | Executed | Passed | Failed | Workflow | Artifact | Execution |
+|---|---:|---:|---:|---|---|---|
+| ShopSphere success | 5 | 5 | 0 | [Run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) | [Report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788/artifacts/9429101193) | [Dashboard](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
+| ServiceDesk success | 5 | 5 | 0 | [Run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) | [Report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053/artifacts/9429173727) | [Dashboard](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
+| ShopSphere functional failure | 5 | 4 | 1 | [Expected failed run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) | [Report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619/artifacts/9429251422) | [Dashboard](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
 
-- Commits before rewrite: 11
-- Commits after rewrite: 11
-- Final tree equivalence: passed
-- Commit-tree sequence equivalence: passed
-- Commit-message sequence equivalence: passed
-- Timestamp equivalence: passed
-- Old backup/original refs remaining: 0
-
-No squash or remote operation was performed.
+Official aggregate: 10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90% approval, and 90% Quality Score. ShopSphere Regression Delta reports one new failure.
 
 ## Validation
 
 | Gate | Result | Detail |
 |---|---|---|
-| Frozen install | Passed | Lockfile current; no resolution drift |
+| Frozen install | Passed | Lockfile current; no resolution or dependency drift |
 | Lint | Passed | All workspaces |
 | Typecheck | Passed | All workspaces |
-| Tests | Passed | 35 executed, 35 passed, 0 failed, 0 skipped |
-| Build | Passed | Shared, API, and Vite web build |
-| Playwright E2E | Passed | 9 local and 6 production-like scenarios; 0 failed, 0 skipped |
-| Demo reset | Passed | Restored exactly 12 curated seeded executions |
-| Responsive matrix | Passed | 1920×1080 through 320×568 with no page-level overflow |
+| Tests | Passed | 60 passed, 0 failed, 0 skipped |
+| Build | Passed | Shared, API, and Vite web production build |
+| Playwright E2E | Passed | 10 local, 6 production, and 1 hosted-preview scenario |
+| Responsive matrix | Passed | All primary routes; 1440×900 through 320×568; zero page-level overflow |
+| Accessibility review | Passed | Keyboard, focus, headings, labels, contrast, and responsive navigation |
 
-## Demo smoke
+## Public assets
 
-| Product | Mode | Executed | Passed | Failed | Errors | Approval |
-|---|---|---:|---:|---:|---:|---:|
-| ShopSphere | Success | 5 | 5 | 0 | 0 | 100% |
-| ShopSphere | Functional failure | 5 | 4 | 1 | 0 | 80% |
-| ServiceDesk | Success | 5 | 5 | 0 | 0 | 100% |
-| PocketWallet | Infrastructure failure | 0 | 0 | 0 | 1 | null |
+All six PNG files were captured from the public hosted application and visually inspected. They contain only the QualityOps Hub UI: no editor, terminal, desktop chrome, browser profile, email, token, personal path, or notification.
 
-PocketWallet remained an explicit `MOBILE_HARNESS_DEMO` infrastructure failure with `status=ERROR`, `executed=0`, and `approvalRate=null`.
+| Asset | SHA-256 |
+|---|---|
+| `docs/assets/coverage.png` | `04bc630fb8bfe0f80805daf6f1d644674b4e101a28f86a379e74fbd247396e4e` |
+| `docs/assets/executions.png` | `da6419ae53f0d8bfd4f77764e772f0e96866190fa94316557bd056d0b92ca4b7` |
+| `docs/assets/integrations.png` | `3aaed92eb19898852807e845bd012294cdfdb53eb152db771ebdfdb3982deff9` |
+| `docs/assets/overview.png` | `e22feeba9a20d6bfeade38ff3c5cc3e33c3bb0ca7f4bd4c75cb523353da91324` |
+| `docs/assets/pipeline-lab.png` | `b89939343dbca1928fd340822bf5e4f42ccfd1a308609c993fad10fc23c202f3` |
+| `docs/assets/regression-delta.png` | `2e60ba6bc7326ac6f29b328ca13ef08d74820b6ffec477643988be79f5b3eb89` |
 
-## Scans
+## Public-release scans
 
 - `CORPORATE_REFERENCE_SCAN=ZERO_FINDINGS`
 - `SECRET_SCAN=ZERO_FINDINGS`
@@ -66,43 +62,15 @@ PocketWallet remained an explicit `MOBILE_HARNESS_DEMO` infrastructure failure w
 - `PUBLIC_ASSET_SCAN=ZERO_FINDINGS`
 - `PUBLIC_GIT_IDENTITY_SCAN=ZERO_FINDINGS`
 
-## Public assets
-
-All five PNG files were visually inspected. They contain only the QualityOps Hub application UI: no editor, terminal, desktop, taskbar, browser profile, bookmarks, notification, real email, or personal path.
-
-Checkpoint 7 additionally generated and visually reviewed 15 ignored local evidence captures covering every primary route plus Overview and Pipeline Lab on mobile. Existing README screenshots remain unchanged pending an explicit decision to replace the curated public assets.
-
-| Asset | SHA-256 |
-|---|---|
-| `docs/assets/execution-details.png` | `5222a489e29b7f2c3c1caab52b8b9ddb4e9ac268ed54c43119d6157661dd9ba1` |
-| `docs/assets/infrastructure-error.png` | `21aa80883fa9270d5c98581ffbe95349d4dde61f8cdd0fafebc1716d996d737c` |
-| `docs/assets/overview.png` | `179479c9ae9eec182c23b6ed4cd07e1d21b5920844c842bd6df916cb34d5e43a` |
-| `docs/assets/pipeline-lab.png` | `c71a01c3a6de1415529f863e1dffa5eda6591f859b320b7c6d0b0fc52a999c94` |
-| `docs/assets/regression-delta.png` | `dfe3615558276fbecc2553bda37e6f56b2aabb94ac2eea32d86c3e86c02324f9` |
-
-## Workflows
-
-- `platform.yml`: push/PR/manual frozen install, PostgreSQL, lint, typecheck, tests, build, scans, and Chromium E2E.
-- `demo-shopsphere.yml`: manual Cypress/Mochawesome artifact and authenticated external-CI ingestion, with honest functional-failure conclusion.
-- `demo-servicedesk.yml`: manual Playwright/versioned JSON artifact and authenticated external-CI ingestion.
-- `demo-pocketwallet.yml`: Mobile Harness Demo JSON artifact generation.
-
-All workflows use least-privilege repository permissions and bounded timeouts. External-CI code is present; product-secret entry and real workflow proof remain a separately authorized human step.
-
 ## Known limitations
 
-- The hosted free-tier service provides a labeled flow preview and intentionally does not execute Cypress or Playwright.
-- In-process jobs have no distributed queue or cross-instance recovery.
-- Pipeline Lab has a bounded in-process request limiter; no distributed rate limiter is implemented.
-- No user accounts, roles, tenant boundaries, or audit-log service.
-- Object storage is not configured; raw reports remain ignored local artifacts.
-- Integration tokens require explicit rotation/revocation and have no automatic expiry.
-- PocketWallet is a deterministic Mobile Harness Demo, not a real device run.
-- Automation Coverage, Automation Plan, adapter status, and in-app documentation use explicit fictional demo models rather than external systems of record.
-- Video Evidence is a concept preview; upload and persistent object storage remain roadmap work.
-- Flaky Test Radar remains roadmap work; remote GitHub ingestion activation awaits product secrets and proof runs.
-- Registry-backed dependency advisory review remains part of ongoing maintenance.
+- PocketWallet is a deterministic Mobile Harness Demo, not a real Android device.
+- The hosted free tier previews Pipeline Lab state transitions and starts no browser.
+- Render Free can cold-start.
+- Object storage is not configured.
+- There is no user authentication, multi-tenancy, distributed queue, or distributed rate limiting.
+- Every portfolio product and dataset is fictional and synthetic.
 
-## Hosting boundary
+`QUALITYOPS_V1_RELEASE_CANDIDATE_READY`
 
-The repository and hosted Render/Neon portfolio demo are public. Automatic deployment remains disabled. External-CI repository secrets and proof dispatch require explicit human action; no paid resource is introduced.
+`HUMAN_RELEASE_APPROVAL_REQUIRED`
