@@ -1,161 +1,153 @@
 # QualityOps Hub
 
-**Portfolio Preview** — a TestOps portfolio platform that turns automated-test reports into quality signals that can be compared over time.
+**Open-source TestOps portfolio platform that normalizes CI test reports into traceable quality metrics, history, and regression signals.**
 
-License: [MIT](LICENSE)
+**Live Demo:** [qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)<br>
+**Architecture:** React + Fastify on Render, PostgreSQL on Neon, browser automation in GitHub Actions<br>
+**CI Status:** [![Platform CI](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml/badge.svg)](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml)
 
-`LICENSE=MIT`
+`v1.0.0 release candidate` · [MIT](LICENSE) · Node.js `20.20.1` · pnpm `10.34.5`
+
+> Every product, test, execution, and metric in this project is fictional and synthetic.
+
+## Problem and solution
+
+Automated-test results are commonly fragmented across CI jobs, framework reports, artifacts, logs, and historical runs. Answering whether quality improved or regressed then requires manual reconciliation across tools and formats.
+
+QualityOps Hub provides one bounded path from report to decision-ready evidence:
+
+- versioned adapters normalize framework-specific reports;
+- PostgreSQL keeps a traceable execution history;
+- quality metrics separate assertions from infrastructure errors;
+- Regression Delta compares stable scenario identities over time;
+- pipeline metadata connects the dashboard back to the originating CI evidence.
+
+It complements CI rather than replacing it: CI executes the tests; QualityOps Hub explains their results over time.
 
 ## Live Demo
 
-Live demo: [https://qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)
+[https://qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)
 
-The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution stays in manually dispatched GitHub Actions workflows; the hosted Pipeline Lab remains a non-persisting preview. Authenticated external CI is active and its latest real reports drive the official dashboard metrics. See [the hosting guide](docs/hosting.md).
+- Render Free may require a cold start before the first response.
+- All products and data are fictional.
+- Real Cypress and Playwright browser automation runs in GitHub Actions.
+- Neon PostgreSQL persists the normalized results.
+- The hosted Pipeline Lab is a non-persisting flow preview and does not create official evidence.
 
-### Live external-CI evidence
+The latest official product runs produce **10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90% approval, and a 90% Quality Score**.
 
-All three proof runs used commit `c2566eef4c2ab77488318c8192e908723283b03c` on `main`. GitHub Actions retained each raw report before the authenticated Render ingestion step completed.
+## Real CI Evidence
 
-| Product | Scenario | Real runner / report | Result | Evidence |
-|---|---|---|---|---|
-| ShopSphere | Success | Cypress / Mochawesome | 5 executed, 5 passed | [workflow run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) · [normalized execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
-| ServiceDesk | Success | Playwright / `playwright-json-v1` | 5 executed, 5 passed | [workflow run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) · [normalized execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
-| ShopSphere | Functional failure | Cypress / Mochawesome | 5 executed, 4 passed, 1 failed | [expected failed workflow](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) · [normalized execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
+These public proof runs preserve the real framework report as a GitHub Actions artifact before authenticated ingestion into the hosted API.
 
-The current official aggregate is 10 executed, 9 passed, 1 failed, and 0 infrastructure errors. ShopSphere Regression Delta reports one new failure. The public Pipeline Lab reports `EXTERNAL_CI_ACTIVE`, but its hosted-preview path still creates no official execution.
+| Scenario | Framework | Executed | Passed | Failed | Workflow | Artifact | Dashboard execution |
+|---|---|---:|---:|---:|---|---|---|
+| ShopSphere — success | Cypress / Mochawesome | 5 | 5 | 0 | [Run 32431118788](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) | [Mochawesome report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788/artifacts/9429101193) | [Execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
+| ServiceDesk — success | Playwright / `playwright-json-v1` | 5 | 5 | 0 | [Run 32431321053](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) | [Playwright report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053/artifacts/9429173727) | [Execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
+| ShopSphere — functional failure | Cypress / Mochawesome | 5 | 4 | 1 | [Expected failed run 32431559619](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) | [Mochawesome report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619/artifacts/9429251422) | [Execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
 
-> CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
-
-## Why this project exists
-
-Quality engineers often move between CI jobs, framework-specific reports, artifacts, spreadsheets, and screenshots to answer a simple question: did product quality improve or regress? That context becomes fragmented as projects use different runners and report formats.
-
-QualityOps Hub explores a single, auditable path from test execution to a historical quality view. It is intentionally a focused portfolio project, not a replacement for a CI platform.
-
-## The idea
-
-CI executes tests. QualityOps Hub receives the resulting report, validates it, normalizes it, stores it, compares it with the previous execution, and visualizes the outcome.
-
-## What QualityOps Hub does
-
-- Accepts product-scoped Bearer-authenticated test reports.
-- Validates three explicit, versioned report formats.
-- Normalizes framework-specific results into one execution model.
-- Separates functional failures from infrastructure errors.
-- Persists executions, suites, cases, pipeline metadata, and deltas in PostgreSQL.
-- Detects identical replays and conflicting content for the same pipeline identity.
-- Runs real browser demonstrations locally and a clearly labeled, non-persisting flow preview on the hosted free tier.
-- Shows overview, history, execution details, freshness, and Regression Delta views.
-- Presents an explicit 28/40 fictional Automation Coverage model that is separate from execution approval.
-- Provides a filterable Automation Plan preview and live adapter status for each fictional product.
-- Includes concise in-app operating guides and an honest Video Evidence concept preview.
+The functional-failure workflow intentionally finishes red only after its report is preserved and ingested. ShopSphere then reports one new failure in Regression Delta.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-  Developer --> CI[CI workflow]
-  CI --> Runner[Automated test runner]
-  Runner --> Report[Framework report]
-  Report --> Artifact
-  Artifact --> API[QualityOps ingestion API]
-  API --> Adapter[Versioned report adapter]
-  Adapter --> Normalized[Normalized execution]
-  Normalized --> PostgreSQL
-  PostgreSQL --> Views[Dashboard / History / Delta]
+  Actions[GitHub Actions]
+  Runners[Cypress / Playwright]
+  Report[Report artifact]
+  Adapter[Versioned adapter]
+  Execution[Normalized execution]
+  Database[(Neon PostgreSQL)]
+
+  subgraph Render
+    API[Authenticated ingestion API / Fastify]
+    Dashboard[QualityOps Dashboard / React]
+  end
+
+  Actions --> Runners --> Report --> API --> Adapter --> Execution --> Database --> Dashboard
 ```
 
-Framework parsing is isolated in adapters; the HTTP layer never contains runner-specific mapping logic. Local runners submit through the same authenticated ingestion boundary reserved for real external-CI reports in the hosted architecture.
+GitHub Actions runs browser automation and retains the raw artifacts. Fastify validates authenticated report envelopes, a versioned adapter maps each accepted format into a common model, and Neon persists the normalized history. Render hosts the same-origin React application and API.
 
-## Demo products
+## Features
 
-### ShopSphere
+- Multi-framework report normalization for Mochawesome, `playwright-json-v1`, and `mobile-e2e-json-v1`.
+- Authenticated ingestion with isolated product-scoped tokens.
+- Idempotent report replay and HTTP 409 for conflicting content at the same identity.
+- Historical executions with traceable workflow, job, artifact, branch, and commit metadata.
+- Approval Rate, Quality Score, Automation Coverage, freshness, and infrastructure-error semantics.
+- Regression Delta for new, recovered, persistent, added, and removed tests.
+- Execution Details with sanitized diagnostics.
+- Pipeline Lab with strict allow-listed local runners and a separate hosted-preview mode.
+- Health and readiness endpoints.
+- Responsive portfolio UI with keyboard-accessible navigation.
 
-A fictional e-commerce product. Its demo runner executes real Cypress browser tests and exports a real Mochawesome report.
+## Tech stack
 
-### ServiceDesk
+| Area | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Backend | Fastify, TypeScript |
+| Validation | Zod |
+| Database | PostgreSQL / Neon |
+| Automation | Cypress, Playwright |
+| CI | GitHub Actions |
+| Container | Docker |
+| Hosting | Render |
 
-A fictional support portal. Its demo runner executes real Playwright browser tests and exports the versioned `playwright-json-v1` contract.
+## Engineering Decisions
 
-### PocketWallet
-
-A fictional mobile product represented by `MOBILE_HARNESS_DEMO`. It demonstrates mobile-report normalization and a deliberate pre-execution infrastructure failure. It is not an Android device, Appium, or WebdriverIO run.
-
-## Pipeline Lab
-
-Pipeline Lab is the main interactive demonstration:
-
-1. Start the local demo.
-2. Open **Pipeline Lab**.
-3. Select a fictional product.
-4. Select Smoke or Regression.
-5. Select success, functional failure, or infrastructure failure.
-6. Run the pipeline.
-7. Watch the queued, running, processing, and completed states.
-8. Open the persisted execution.
-9. Inspect the refreshed dashboard.
-10. Open ShopSphere to inspect Regression Delta.
-
-The API accepts enums only and maps them to fixed runner files. User input never becomes a command, executable, argument list, or filesystem path.
-
-`DEMO_RUNNER_MODE=local` keeps this complete flow and executes the real Cypress, Playwright, or Mobile Harness Demo runner. `DEMO_RUNNER_MODE=hosted-preview` demonstrates queue and processing states without spawning Cypress/Playwright, fabricating reports, or adding an official execution. The public UI derives `EXTERNAL_CI_INTEGRATION_PENDING` or `EXTERNAL_CI_ACTIVE` from persisted ShopSphere and ServiceDesk GitHub Actions evidence.
-
-## Portfolio views
-
-- **Overview** explains Quality Score, Approval Rate, Automation Coverage, and freshness without combining their meanings.
-- **Products and Executions** expose current outcomes, Regression Delta, bounded history, and copyable pipeline metadata.
-- **Coverage** uses an explicit fictional planning baseline: 28 automated scenarios out of 40 eligible scenarios.
-- **Automation Plan** provides representative, filterable scenario mappings; CSV/XLSX import remains planned.
-- **Integrations** connects each product to its runner, report format, adapter, authentication model, and latest ingestion.
-- **Documentation** provides concise in-app guides for automation, adapters, Pipeline Lab, and architecture.
-- **Video Evidence** is clearly labeled as a demo preview. File upload and persistent object storage are not implemented.
-
-## Report adapters
-
-| Product | Runner | Accepted format |
-|---|---|---|
-| ShopSphere | Cypress | `mochawesome` |
-| ServiceDesk | Playwright | `playwright-json-v1` |
-| PocketWallet | Mobile Harness Demo | `mobile-e2e-json-v1` |
-
-The normalized model preserves stable scenario identity, status, duration, sanitized diagnostics, pipeline metadata, and explicit execution counts. See [the adapter guide](docs/adapters.md) and [report contract](docs/test-report-contract.md).
-
-## Regression Delta
-
-Each new execution is compared with the latest previous execution for the same product and origin using a stable test-case key. The UI reports new failures, recovered tests, persistent failures, new tests, and removed tests without mixing seed, local-demo, and GitHub Actions history.
-
-## Infrastructure errors
-
-Infrastructure errors are not counted as failed assertions. When a runner cannot start, the execution is stored as `ERROR` with `executed=0`, `failed=0`, and at least one infrastructure error. Approval and Quality Score remain unavailable because no test result exists.
+- **Versioned adapters:** framework parsing stays outside HTTP routes and domain metrics, so a report format can evolve without changing the normalized model.
+- **Normalized execution model:** Cypress, Playwright, and the mobile harness become comparable without discarding framework, suite, case, or pipeline traceability.
+- **Product-scoped tokens:** each integration receives only the ingestion boundary for its own fictional product.
+- **Idempotency:** CI retries can safely return the original execution, while conflicting content for the same identity is rejected.
+- **External CI for browsers:** Render Free hosts the UI/API; GitHub Actions provides the resources and retained artifacts for real Cypress and Playwright runs.
+- **Preview is not evidence:** hosted preview demonstrates state transitions but cannot affect official metrics or create an execution.
 
 ## Security
 
-- Raw integration tokens are displayed once; PostgreSQL stores a salted scrypt hash.
-- Authentication uses product-scoped tokens and timing-safe comparison.
-- Production uses same-origin frontend/API requests; local CORS defaults to the two development origins.
-- Responses include defensive content, frame, referrer, and permissions headers.
-- Report bodies are validated with Zod and limited to 10 MiB.
-- SQL calls are parameterized and ingestion writes use transactions.
-- Pipeline Lab is feature-flagged and strictly allow-listed. Local mode adds rate/cooldown/capacity limits and timed child processes without a shell; hosted-preview mode starts no child process.
-- Stack traces and file paths are sanitized before persistence.
-- Raw reports stay in ignored local artifacts and are not exposed by the API.
+- Raw integration tokens are shown once; PostgreSQL stores salted scrypt hashes.
+- Tokens are isolated by product and raw secrets never belong in report payloads.
+- Pipeline Lab maps enums to fixed runner files, uses bounded execution, and accepts no arbitrary commands or paths.
+- Production uses a same-origin hosted architecture and defensive HTTP headers.
+- Zod validates bounded report bodies; SQL calls are parameterized and ingestion is transactional.
+- Repository, history, identity, path, asset, corporate-reference, and secret scans protect the public surface.
 
-This is a bounded portfolio demo, not a multi-tenant production service. It has no distributed queue, external object storage, distributed rate limiting, user accounts, or analytics. See [SECURITY.md](SECURITY.md), [known risks](docs/security.md), and [hosted-demo limitations](docs/hosting.md).
+See [SECURITY.md](SECURITY.md) and the [security design notes](docs/security.md).
 
-## Local demo
+## Screenshots
+
+| Overview | Pipeline Lab |
+|---|---|
+| ![Official QualityOps dashboard metrics and fictional product cards](docs/assets/overview.png) | ![Hosted Pipeline Lab with external CI active and preview boundaries](docs/assets/pipeline-lab.png) |
+
+| Executions | Regression Delta |
+|---|---|
+| ![Execution history with GitHub Actions, local demo, and seeded origins](docs/assets/executions.png) | ![ShopSphere official execution summary and Regression Delta](docs/assets/regression-delta.png) |
+
+| Coverage | Integrations |
+|---|---|
+| ![Fictional automation coverage baseline by product](docs/assets/coverage.png) | ![Versioned adapters, product authentication, and latest ingestion origins](docs/assets/integrations.png) |
+
+## Current Limitations
+
+- PocketWallet is a deterministic Mobile Harness Demo, not a real Android device run.
+- Object storage is not enabled; GitHub Actions retains external-CI reports and local raw reports remain disposable ignored artifacts.
+- Render Free may introduce a cold start.
+- The application has no user authentication, roles, or multi-tenancy.
+- The portfolio dataset, products, users, tests, and planning model are synthetic.
+- Background demo jobs use an in-process queue with no distributed recovery.
+- Video Evidence is a clearly labeled concept preview without upload or persistent storage.
+
+## Getting started
 
 ### Prerequisites
 
 - Node.js `20.20.1`
 - pnpm `10.34.5`
 - Docker with Compose
-- Chromium dependencies supported by Playwright
-
-[Volta](https://volta.sh/) is the recommended optional runtime manager because the exact Node and pnpm versions are pinned in `package.json`.
 
 ### Quick start
-
-Start Docker, then run:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -163,23 +155,17 @@ pnpm demo:start
 pnpm demo:status
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. The local experience uses only fictional demo configuration; no hosted secret is required.
 
-Stop only the project demo services with:
+Stop only the project services with:
 
 ```bash
 pnpm demo:stop
 ```
 
-Reset only the local `qualityops_dev` data and project demo artifacts, reseed the fictional history, and restart the demo with explicit confirmation:
+Detailed setup and safe reset instructions are in [docs/development.md](docs/development.md).
 
-```bash
-pnpm demo:reset -- --confirm-local-demo-reset
-```
-
-The reset command refuses non-local hosts and any database name other than `qualityops_dev`. It does not prune Docker, delete the project volume, or touch external containers.
-
-## Testing strategy
+## Validation
 
 ```bash
 pnpm install --frozen-lockfile
@@ -194,44 +180,26 @@ pnpm scan:secrets
 pnpm scan:public
 ```
 
-Unit tests cover shared quality semantics and adapters. PostgreSQL integration tests cover authentication, all report formats, idempotent replay, conflict handling, and feature flags. Playwright acceptance tests drive real local pipelines through the UI and verify persisted results.
+Unit tests cover shared quality semantics and report adapters. PostgreSQL integration tests cover authentication, supported formats, token isolation, idempotent replay, conflicts, and feature boundaries. Playwright covers local pipelines, primary views, pagination, responsive overflow, and mobile keyboard navigation.
 
-## Screenshots
+## Documentation
 
-### Platform overview
+- [Architecture](docs/architecture.md)
+- [Report adapters](docs/adapters.md)
+- [Report contract](docs/test-report-contract.md)
+- [GitHub Actions ingestion](docs/github-actions.md)
+- [Hosting](docs/hosting.md)
+- [Security](docs/security.md)
+- [Roadmap](docs/roadmap.md)
+- [v1.0.0 release notes](docs/releases/v1.0.0.md)
+- [Portfolio case study](docs/portfolio/case-study.md)
 
-![QualityOps Hub overview with three fictional products](docs/assets/overview.png)
+## Release status
 
-### Pipeline Lab
+The codebase is prepared as a **v1.0.0 release candidate**. No `v1.0.0` tag or GitHub Release is created until human approval.
 
-![ShopSphere functional-failure pipeline result](docs/assets/pipeline-lab.png)
-
-### Infrastructure error
-
-![PocketWallet infrastructure error with zero executed tests](docs/assets/infrastructure-error.png)
-
-### Execution details
-
-![Normalized execution details and sanitized failure diagnostics](docs/assets/execution-details.png)
-
-### Regression Delta
-
-![ShopSphere regression delta and execution history](docs/assets/regression-delta.png)
-
-## Roadmap
-
-Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). The product-scoped GitHub Actions ingestion path is active with real Cypress and Playwright proof runs; later integrations remain separately authorized work.
-
-## Project status
-
-Status: **Portfolio Preview**.
-
-The local application, database-backed ingestion, real local browser runners, portfolio-ready views, public hosted preview, and external GitHub Actions ingestion path are implemented. ShopSphere and ServiceDesk now have persisted real external-CI evidence; seed and hosted-preview data remain non-official.
-
-## License
+## License and disclaimer
 
 QualityOps Hub is available under the [MIT License](LICENSE).
 
-## Disclaimer
-
-QualityOps Hub is an independent portfolio project. ShopSphere, ServiceDesk, PocketWallet, their users, tests, pipelines, and all displayed data are fictional and synthetic. No real organization, proprietary product, enterprise system, or business integration is represented. PocketWallet is a deterministic Mobile Harness Demo, not a real Android-device execution.
+QualityOps Hub is an independent portfolio project. ShopSphere, ServiceDesk, PocketWallet, their users, tests, pipelines, and all displayed data are fictional and synthetic. No real organization, proprietary product, enterprise system, client, or employer integration is represented.

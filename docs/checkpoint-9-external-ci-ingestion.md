@@ -1,6 +1,6 @@
 # Checkpoint 9: external CI ingestion
 
-Status: implementation complete locally; remote activation and proof are waiting for human secret configuration.
+Status: **complete**. External CI is active and the three public proof runs are persisted in the hosted dashboard.
 
 ## Implemented boundary
 
@@ -16,7 +16,7 @@ Tokens remain independent per product, stored as hashes, shown once when created
 
 Only `EXTERNAL_CI` feeds the official latest product execution, aggregate approval, quality score, official freshness, and external-CI Regression Delta. The history screen may still show all origins with explicit labels. Hosted preview never creates a report or official execution.
 
-The hosted status remains `EXTERNAL_CI_INTEGRATION_PENDING` until both ShopSphere and ServiceDesk have at least one persisted external-CI execution. It becomes `EXTERNAL_CI_ACTIVE` from database evidence, not from configuration or a hard-coded claim.
+The hosted status is `EXTERNAL_CI_ACTIVE` because both ShopSphere and ServiceDesk have persisted external-CI executions. That state is derived from database evidence, not configuration or a hard-coded claim.
 
 ## Workflow guarantees
 
@@ -28,6 +28,12 @@ The hosted status remains `EXTERNAL_CI_INTEGRATION_PENDING` until both ShopSpher
 - No PAT, database credential, Render credential, or Neon credential is used by the workflows.
 - `platform.yml` validates push to `main`, pull request, and manual dispatch.
 
-## Remaining authorized boundary
+## Public proof
 
-No hosted integration token or GitHub Actions secret is created by this implementation phase. Follow [the manual activation procedure](github-actions.md), then provide only `SECRETS_CONFIGURED`. Real workflow URLs, artifacts, ingestion results, dashboard state, and final completion declarations remain pending until the three proof runs finish.
+| Scenario | Workflow | Artifact | Normalized execution |
+|---|---|---|---|
+| ShopSphere success — 5/5 passed | [Run 32431118788](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) | [Mochawesome](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788/artifacts/9429101193) | [Execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
+| ServiceDesk success — 5/5 passed | [Run 32431321053](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) | [Playwright JSON](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053/artifacts/9429173727) | [Execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
+| ShopSphere functional failure — 4/5 passed | [Expected failed run 32431559619](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) | [Mochawesome](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619/artifacts/9429251422) | [Execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
+
+The official aggregate after these runs is 10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90% approval, and a 90% Quality Score. ShopSphere reports one new failure in Regression Delta.

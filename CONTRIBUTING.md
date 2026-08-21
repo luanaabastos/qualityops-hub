@@ -25,6 +25,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm test:e2e
+pnpm test:production
 pnpm scan:references
 pnpm scan:secrets
 pnpm scan:public

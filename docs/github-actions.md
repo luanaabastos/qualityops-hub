@@ -38,9 +38,9 @@ The workflow uses `QUALITYOPS_URL=https://qualityops-hub.onrender.com` as public
 
 Token values are created locally against the hosted PostgreSQL database, displayed exactly once, and stored by the application only as salted scrypt hashes. There can be only one active token per product; rotation revokes the former token. Never paste a token into chat, a shell history file, documentation, a commit, a workflow input, or a workflow log.
 
-## Manual activation procedure
+## Token lifecycle procedure
 
-Do not dispatch either browser workflow until the current application commit has been manually deployed on the existing Render service and its readiness endpoint is healthy.
+The integration is active. Use this procedure only when a product token must be intentionally created or rotated by the responsible human. Do not dispatch either browser workflow until the current application commit is manually deployed on the existing Render service and its readiness endpoint is healthy.
 
 1. In a private local terminal, supply the existing Neon `DATABASE_URL` without saving it in this repository or pasting it into chat.
 2. Run the two acknowledged one-time creation commands:
@@ -57,4 +57,4 @@ Do not dispatch either browser workflow until the current application commit has
 
 If an active token already exists, use `integration-token:rotate` with the same acknowledgement flag and replace only the corresponding GitHub secret. To disable access, use `integration-token:revoke -- --product <product>`.
 
-After the human confirmation, the authorized proof sequence is ShopSphere `SUCCESS`, ServiceDesk `SUCCESS`, and ShopSphere `FUNCTIONAL_FAILURE`. Workflow run, job, artifact, ingestion response, normalized execution identity, commit, and counts must be collected from those real runs before external CI can be declared complete.
+The completed public proof sequence is ShopSphere `SUCCESS`, ServiceDesk `SUCCESS`, and ShopSphere `FUNCTIONAL_FAILURE`. Its workflow, artifact, and normalized execution links are recorded in [Checkpoint 9](checkpoint-9-external-ci-ingestion.md) and the [v1.0.0 release notes](releases/v1.0.0.md).

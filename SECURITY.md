@@ -2,7 +2,7 @@
 
 ## Scope
 
-QualityOps Hub is a local portfolio demo, not a production service. Security reports are still welcome for the API, report adapters, token lifecycle, Pipeline Lab, database handling, workflows, and public assets.
+QualityOps Hub is a public portfolio project, not a production or multi-tenant service. Security reports are welcome for the API, report adapters, token lifecycle, Pipeline Lab, database handling, workflows, hosted demo, and public assets.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,7 @@ No real credential should ever be used with this project. If one is exposed, rev
 
 ## Supported status
 
-The current status is **Portfolio Preview**. There is no production deployment or security support window. Fixes are evaluated against the latest `main` branch.
+The current status is **v1.0.0 release candidate**. The public Render/Neon deployment is a portfolio demo and has no formal security support window. Fixes are evaluated against the latest `main` branch.
 
 ## Demo data
 

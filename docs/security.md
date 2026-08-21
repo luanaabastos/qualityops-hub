@@ -1,6 +1,6 @@
 # Security review
 
-QualityOps Hub is a local portfolio demo. These controls reduce risk in that scope; they do not make the application production-ready.
+QualityOps Hub is a public portfolio demo. These controls reduce risk in that bounded scope; they do not make the application production-ready or multi-tenant.
 
 ## Implemented controls
 
@@ -12,7 +12,7 @@ Integration tokens are product-scoped opaque values. The database stores a rando
 
 - Report bodies are limited to 10 MiB.
 - Route parameters and request bodies are validated with Zod.
-- Production uses same-origin web/API requests and registers no CORS policy by default; development allows only its two explicit local origins.
+- The hosted Render application uses same-origin web/API requests and registers no CORS policy by default; development allows only its two explicit local origins.
 - Responses set `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Permissions-Policy`.
 - Unexpected ingestion failures return a generic message instead of an internal diagnostic.
 - There is no file-upload endpoint; the API accepts a validated JSON body.
@@ -41,7 +41,7 @@ The reset command requires an explicit confirmation flag, accepts only a loopbac
 - There is no user authentication, role model, tenant boundary, or audit-log service.
 - Object storage is not implemented; raw reports are local files with no retention service.
 - CORS is a browser control, not an authentication boundary.
-- Secure transport and hosted secret storage depend on a future deployment platform.
+- Hosted transport and secret storage depend on Render, Neon, and GitHub Actions configuration outside this repository.
 - Dependency vulnerability intelligence is not available from an offline install alone and must be reviewed before a hosted release.
 
 ## Local credentials

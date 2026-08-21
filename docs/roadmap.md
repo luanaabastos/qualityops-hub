@@ -25,11 +25,12 @@ No milestone below carries a promised date.
 - Public Render/Neon portfolio deployment with explicit hosted-preview and local-runner modes
 - Resilient sequential Pipeline Lab polling with bounded retry and backoff
 - External GitHub Actions workflows, product-authenticated report delivery, and official-data isolation
+- Three public external-CI proof runs with retained artifacts and hosted normalized executions
+- Public v1.0.0 portfolio release-candidate documentation and presentation assets
 - `LICENSE=MIT`
 
 ## Next
 
-- Checkpoint 9 activation: configure the two product secrets and capture three real workflow proofs
 - Flaky Test Radar using longer execution history
 - CSV/XLSX Automation Plan import with validation and change review
 - Persistent video evidence with object storage and explicit retention rules
