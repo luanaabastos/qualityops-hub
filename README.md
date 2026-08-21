@@ -10,7 +10,19 @@ License: [MIT](LICENSE)
 
 Live demo: [https://qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)
 
-The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution stays in manually dispatched GitHub Actions workflows; the hosted Pipeline Lab remains a non-persisting preview. External-CI activation is waiting for the two product secrets and real proof runs. See [the hosting guide](docs/hosting.md).
+The public portfolio demo runs the UI/API on Render Free and persists history in Neon PostgreSQL. Browser-heavy Cypress and Playwright execution stays in manually dispatched GitHub Actions workflows; the hosted Pipeline Lab remains a non-persisting preview. Authenticated external CI is active and its latest real reports drive the official dashboard metrics. See [the hosting guide](docs/hosting.md).
+
+### Live external-CI evidence
+
+All three proof runs used commit `c2566eef4c2ab77488318c8192e908723283b03c` on `main`. GitHub Actions retained each raw report before the authenticated Render ingestion step completed.
+
+| Product | Scenario | Real runner / report | Result | Evidence |
+|---|---|---|---|---|
+| ShopSphere | Success | Cypress / Mochawesome | 5 executed, 5 passed | [workflow run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) · [normalized execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
+| ServiceDesk | Success | Playwright / `playwright-json-v1` | 5 executed, 5 passed | [workflow run](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) · [normalized execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
+| ShopSphere | Functional failure | Cypress / Mochawesome | 5 executed, 4 passed, 1 failed | [expected failed workflow](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) · [normalized execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
+
+The current official aggregate is 10 executed, 9 passed, 1 failed, and 0 infrastructure errors. ShopSphere Regression Delta reports one new failure. The public Pipeline Lab reports `EXTERNAL_CI_ACTIVE`, but its hosted-preview path still creates no official execution.
 
 > CI tells you that tests ran. QualityOps Hub helps you understand what those runs mean over time.
 
@@ -208,13 +220,13 @@ Unit tests cover shared quality semantics and adapters. PostgreSQL integration t
 
 ## Roadmap
 
-Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). External-CI code is implemented; product-secret configuration and the three real proof runs remain a separate human-controlled activation step.
+Implemented capabilities and honest next milestones are tracked in [docs/roadmap.md](docs/roadmap.md). The product-scoped GitHub Actions ingestion path is active with real Cypress and Playwright proof runs; later integrations remain separately authorized work.
 
 ## Project status
 
 Status: **Portfolio Preview**.
 
-The local application, database-backed ingestion, real local browser runners, portfolio-ready views, public hosted preview, and external GitHub Actions ingestion path are implemented. External CI is not represented as active until both product integrations produce persisted real evidence.
+The local application, database-backed ingestion, real local browser runners, portfolio-ready views, public hosted preview, and external GitHub Actions ingestion path are implemented. ShopSphere and ServiceDesk now have persisted real external-CI evidence; seed and hosted-preview data remain non-official.
 
 ## License
 
