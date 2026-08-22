@@ -1,6 +1,6 @@
 # Public portfolio release manifest
 
-This manifest records the published QualityOps Hub v1.0.0 portfolio release.
+This manifest records the historical QualityOps Hub v1.0.0 portfolio release. The current public product name is **TestOps Hub**; the existing tag and release remain unchanged as historical evidence.
 
 - Release commit: `f9082fba51a2625609783cb9cb69c6739d41dc91`
 - Branch: `main`
@@ -36,22 +36,22 @@ Official aggregate: 10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90
 | Typecheck | Passed | All workspaces |
 | Tests | Passed | 60 passed, 0 failed, 0 skipped |
 | Build | Passed | Shared, API, and Vite web production build |
-| Playwright E2E | Passed | 10 local, 6 production, and 1 hosted-preview scenario |
+| Playwright E2E | Passed | 11 local, 6 production, and 1 hosted-preview scenario |
 | Responsive matrix | Passed | All primary routes; 1440×900 through 320×568; zero page-level overflow |
 | Accessibility review | Passed | Keyboard, focus, headings, labels, contrast, and responsive navigation |
 
 ## Public assets
 
-All six PNG files were captured from the public hosted application and visually inspected. They contain only the QualityOps Hub UI: no editor, terminal, desktop chrome, browser profile, email, token, personal path, or notification.
+All six PNG files were captured from the public hosted application after the TestOps Hub rename and visually inspected. They contain only the TestOps Hub UI: no editor, terminal, desktop chrome, browser profile, email, token, personal path, or notification.
 
 | Asset | SHA-256 |
 |---|---|
-| `docs/assets/coverage.png` | `04bc630fb8bfe0f80805daf6f1d644674b4e101a28f86a379e74fbd247396e4e` |
-| `docs/assets/executions.png` | `da6419ae53f0d8bfd4f77764e772f0e96866190fa94316557bd056d0b92ca4b7` |
-| `docs/assets/integrations.png` | `3aaed92eb19898852807e845bd012294cdfdb53eb152db771ebdfdb3982deff9` |
-| `docs/assets/overview.png` | `e22feeba9a20d6bfeade38ff3c5cc3e33c3bb0ca7f4bd4c75cb523353da91324` |
-| `docs/assets/pipeline-lab.png` | `b89939343dbca1928fd340822bf5e4f42ccfd1a308609c993fad10fc23c202f3` |
-| `docs/assets/regression-delta.png` | `2e60ba6bc7326ac6f29b328ca13ef08d74820b6ffec477643988be79f5b3eb89` |
+| `docs/assets/coverage.png` | `0cc712bc6b37cc266234b1080cc5c4241b6be907611ce06084490887522496c4` |
+| `docs/assets/executions.png` | `2bfbcd47a2081c0e327278807d844368dece82ea0fdb917f1708d8a10f38ea62` |
+| `docs/assets/integrations.png` | `e4bed5b7b0b914d355cd1a6d76d7f17f1fba805e7a6ecbf495077c6f819c73d7` |
+| `docs/assets/overview.png` | `0b8ccec401374e99a1cba4848cb3943afe101e8ff00b8b4089b31406a75d9671` |
+| `docs/assets/pipeline-lab.png` | `f28a1e5ea83e3827450590d291617c0bb0527b7be51e2ac195f30bdf49c6eb72` |
+| `docs/assets/regression-delta.png` | `2b0185b1fdd9195965dca042eb2e248240e1f1400f68dfe7d1e2f2eb1120cc0a` |
 
 ## Public-release scans
 
