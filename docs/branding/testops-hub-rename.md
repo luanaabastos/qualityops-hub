@@ -17,7 +17,7 @@ This is a public product-brand change, not an architecture or data migration. Th
 | B. Internal technical name | Package scopes, service names and code identifiers | Preserve |
 | C. Variable or configuration | `QUALITYOPS_*`, database names, Compose credentials and runner configuration | Preserve |
 | D. History or evidence | Existing workflow runs, execution IDs, commit history and the v1.0.0 release snapshot | Preserve |
-| E. URL or repository path | GitHub repository, Render URL, local folder and remote origin | Preserve until a separate decision |
+| E. URL or repository path | GitHub repository, Render URL, local folder and remote origin | Rename the GitHub repository and origin; preserve Render URL and local folder |
 | F. Content that must not change | Migration identifiers, database tables, API fields and stable report identities | Preserve |
 
 The inventory was reviewed by context. No global replacement was used.
@@ -38,7 +38,7 @@ The inventory was reviewed by context. No global replacement was used.
 - Environment variables such as `QUALITYOPS_URL` and `QUALITYOPS_TOKEN`.
 - Local databases `qualityops_dev` and `qualityops_test`.
 - API service identifier `qualityops-api`.
-- Repository `luanaabastos/qualityops-hub` and local folder `qualityops-hub`.
+- Local folder `qualityops-hub`.
 - Render service and URL `qualityops-hub.onrender.com`.
 - Workflow IDs, run URLs, artifact URLs and persisted execution IDs.
 - Database tables, migrations, API fields and historical Git commits.
@@ -49,32 +49,40 @@ Keeping these names avoids a risky migration with no visitor-facing benefit. Pub
 
 The existing annotated `v1.0.0` tag and GitHub Release were published before this rename under the previous public name. They remain immutable historical evidence. This checkpoint creates no tag and no Release.
 
+## Repository rename completion
+
+The existing GitHub repository was renamed in place from `luanaabastos/qualityops-hub` to `luanaabastos/testops-hub` on 2026-08-21. Its commit history, `main` branch, Actions workflows, Repository Secrets, annotated `v1.0.0` tag and GitHub Release were preserved. The local `origin` now uses `https://github.com/luanaabastos/testops-hub.git`.
+
+GitHub redirects the previous repository URL, clone/fetch/push targets and historical workflow/artifact links to the renamed repository. Historical run and artifact URLs retain their original text so published evidence remains traceable. The old repository slug must not be reused, because doing so would remove those redirects.
+
+The local workspace folder remains `qualityops-hub`; this is a local implementation detail with no public effect. The existing Render service and `qualityops-hub.onrender.com` URL also retain their historical technical identifier. No Render service, database, credential or integration token was recreated or changed.
+
 ## Repository rename impact
 
 | Area | Impact of `qualityops-hub` → `testops-hub` |
 |---|---|
-| Render integration | The linked source repository may need to be reconnected. Manual deploy settings must be revalidated. The service name and public URL can remain unchanged unless separately migrated. |
-| GitHub Actions | Workflow files continue with the repository, but badges, API calls and documentation should use the new slug. Existing run and artifact URLs are historical evidence and must be verified through GitHub redirects. |
-| README and badges | Repository links, badges, clone commands and evidence tables require a coordinated update. |
-| Artifact URLs | Existing workflow artifact links contain the old repository path. Redirect behavior and artifact availability must be checked without rewriting historical IDs. |
-| Local clone | The folder does not need to change, but `origin` would need the new URL after the remote rename. |
+| Render integration | The existing service remains healthy and keeps the historical service name and URL. Its GitHub App access remains associated with the same renamed repository; auto-deploy stays disabled. |
+| GitHub Actions | Workflows remain active. Badges, canonical links and documentation use the new slug; historical run and artifact URLs remain valid through GitHub redirects. |
+| README and badges | Canonical repository, badge, tag and release links use `testops-hub`. |
+| Artifact URLs | Existing workflow artifact links retain the old path and historical IDs; GitHub redirects them to the renamed repository. |
+| Local clone | The folder remains `qualityops-hub`; `origin` and branch tracking use the new repository URL. |
 | Screenshots | Product screenshots are independent from the repository slug once the visible application name is TestOps Hub. |
 | Public execution links | Execution IDs use the Render URL and are independent from the GitHub repository name. |
 | GitHub Pages | Not configured; no impact today. |
 | Neon | Database schema and connection configuration do not depend on the repository slug. No database rename is needed. |
 | External CI references | `QUALITYOPS_*` secrets and the Render ingestion URL should remain stable. Workflow documentation can explain that these are legacy-compatible technical names. |
 
-## Risks
+## Residual risks
 
-- GitHub and Render integration behavior must be verified before any repository rename.
-- Public links may rely on redirects, while badges and clone instructions should eventually use the canonical new slug.
-- Historical v1.0.0 evidence must remain traceable even if the repository name changes later.
+- The old GitHub repository slug must not be reused, or historical redirects will stop working.
+- Historical workflow and artifact URLs rely on GitHub's repository redirect behavior.
+- The local folder and Render URL retain `qualityops-hub`, so documentation must keep distinguishing technical legacy names from the public product identity.
 - Renaming environment variables, package scopes or databases at the same time would add migration risk without improving product clarity.
 
-## Recommendation
+## Final decision
 
-Keep the repository named `qualityops-hub` for this checkpoint. Use **TestOps Hub** as the public product identity now, then evaluate a repository rename as a separate, explicitly approved migration with a link inventory, Render reconnection plan and rollback check.
+Use `luanaabastos/testops-hub` as the canonical public repository. Preserve the local folder, Render URL, package scopes, environment variables, databases and historical evidence identifiers until a separate migration has a concrete operational benefit.
 
-`REPOSITORY_RENAME_IMPACT=DOCUMENTED`
+`REPOSITORY_RENAME_IMPACT=VALIDATED`
 
-`REPOSITORY_RENAME_RECOMMENDATION=DEFER_UNTIL_HUMAN_APPROVAL`
+`REPOSITORY_RENAME_RECOMMENDATION=COMPLETED_WITH_LOCAL_PATH_PRESERVED`

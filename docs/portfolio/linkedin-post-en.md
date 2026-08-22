@@ -20,6 +20,6 @@ The public proof includes three real workflows: a successful ShopSphere run, a s
 Every product and data point is fictional and synthetic.
 
 Live demo: https://qualityops-hub.onrender.com<br>
-Code and evidence: https://github.com/luanaabastos/qualityops-hub
+Code and evidence: https://github.com/luanaabastos/testops-hub
 
 #QualityEngineering #TestAutomation #Playwright #Cypress #TypeScript #GitHubActions

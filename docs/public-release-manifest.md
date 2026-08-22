@@ -9,11 +9,11 @@ This manifest records the historical QualityOps Hub v1.0.0 portfolio release. Th
 - Public status: **v1.0.0 published**
 - License: `MIT`
 - `LICENSE=MIT`
-- Repository: `https://github.com/luanaabastos/qualityops-hub`
+- Repository: `https://github.com/luanaabastos/testops-hub`
 - Live demo: `https://qualityops-hub.onrender.com`
 - External CI: `EXTERNAL_CI_ACTIVE`
-- Tag: [`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/tree/v1.0.0)
-- Release: [`PUBLISHED`](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0)
+- Tag: [`v1.0.0`](https://github.com/luanaabastos/testops-hub/tree/v1.0.0)
+- Release: [`PUBLISHED`](https://github.com/luanaabastos/testops-hub/releases/tag/v1.0.0)
 
 The annotated tag remains fixed at the approved release commit. This closure documentation does not move the tag or create another release.
 

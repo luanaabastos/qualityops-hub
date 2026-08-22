@@ -6,9 +6,9 @@ TestOps Hub is a portfolio TestOps platform that collects automated test reports
 
 **Live Demo:** [qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)<br>
 **Architecture:** React + Fastify on Render, PostgreSQL on Neon, browser automation in GitHub Actions<br>
-**CI Status:** [![Platform CI](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml/badge.svg)](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml)
+**CI Status:** [![Platform CI](https://github.com/luanaabastos/testops-hub/actions/workflows/platform.yml/badge.svg)](https://github.com/luanaabastos/testops-hub/actions/workflows/platform.yml)
 
-[`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0) · [MIT](LICENSE) · Node.js `20.20.1` · pnpm `10.34.5`
+[`v1.0.0`](https://github.com/luanaabastos/testops-hub/releases/tag/v1.0.0) · [MIT](LICENSE) · Node.js `20.20.1` · pnpm `10.34.5`
 
 > Every product, user, test, execution and metric in this project is fictional and synthetic. The linked CI workflows, browser runs, reports, ingestion and persistence are real portfolio evidence.
 

@@ -27,4 +27,4 @@ O Pipeline Lab usa runners locais fixos e permitidos no modo de desenvolvimento.
 Três workflows públicos comprovam o fluxo externo: ShopSphere com 5/5 testes aprovados, ServiceDesk com 5/5 e ShopSphere com 4/5 e uma falha funcional intencional. O dashboard oficial agrega os últimos resultados de cada produto externo em 10 executados, 9 aprovados, 1 falha, 90% de aprovação e 90% de Quality Score.
 
 Demo: https://qualityops-hub.onrender.com<br>
-Repositório: https://github.com/luanaabastos/qualityops-hub
+Repositório: https://github.com/luanaabastos/testops-hub

@@ -27,4 +27,4 @@ Pipeline Lab uses fixed, allow-listed local runners during development. In the h
 Three public workflows prove the external path: ShopSphere with 5/5 passing tests, ServiceDesk with 5/5, and ShopSphere with 4/5 plus one intentional functional failure. The official dashboard aggregates the latest external result per product into 10 executed, 9 passed, 1 failed, 90% approval, and a 90% Quality Score.
 
 Live demo: https://qualityops-hub.onrender.com<br>
-Repository: https://github.com/luanaabastos/qualityops-hub
+Repository: https://github.com/luanaabastos/testops-hub

@@ -49,8 +49,8 @@ QualityOps Hub v1.0.0 is published as a final portfolio release. The repository,
 
 ## Publication
 
-- [x] Annotated tag [`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/tree/v1.0.0) points to the approved release commit.
-- [x] Final [GitHub Release](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0) is published without attached local artifacts.
+- [x] Annotated tag [`v1.0.0`](https://github.com/luanaabastos/testops-hub/tree/v1.0.0) points to the approved release commit.
+- [x] Final [GitHub Release](https://github.com/luanaabastos/testops-hub/releases/tag/v1.0.0) is published without attached local artifacts.
 
 `QUALITYOPS_V1_RELEASE_PUBLISHED`
 

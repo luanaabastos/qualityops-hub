@@ -14,9 +14,9 @@ const textRules = [
 const emailPattern = /\b[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})\b/gi;
 const allowedEmailDomains = new Set(['example.com', 'example.test', 'users.noreply.github.com']);
 const authorizedRemoteUrls = new Set([
-  'https://github.com/luanaabastos/qualityops-hub',
-  'git@github.com:luanaabastos/qualityops-hub',
-  'ssh://git@github.com/luanaabastos/qualityops-hub'
+  'https://github.com/luanaabastos/testops-hub',
+  'git@github.com:luanaabastos/testops-hub',
+  'ssh://git@github.com/luanaabastos/testops-hub'
 ]);
 
 function normalizedRemoteUrl(value) {

@@ -20,6 +20,6 @@ A prova pública inclui três workflows reais: ShopSphere com sucesso, ServiceDe
 Todos os produtos e dados são fictícios e sintéticos.
 
 Demo: https://qualityops-hub.onrender.com<br>
-Código e evidências: https://github.com/luanaabastos/qualityops-hub
+Código e evidências: https://github.com/luanaabastos/testops-hub
 
 #QualityEngineering #TestAutomation #Playwright #Cypress #TypeScript #GitHubActions
