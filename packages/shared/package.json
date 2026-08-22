@@ -1,6 +1,6 @@
 {
   "name": "@qualityops-hub/shared",
-  "description": "Shared validation contracts and quality semantics for QualityOps Hub.",
+  "description": "Shared validation contracts and quality semantics for TestOps Hub.",
   "version": "1.0.0",
   "private": true,
   "type": "module",

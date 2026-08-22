@@ -1,6 +1,6 @@
 {
   "name": "qualityops-hub",
-  "description": "Open-source TestOps portfolio platform that normalizes CI test reports into traceable quality metrics, history and regression signals.",
+  "description": "TestOps Hub centralizes automated test results, execution history, coverage and regression signals from CI pipelines.",
   "private": true,
   "version": "1.0.0",
   "license": "MIT",

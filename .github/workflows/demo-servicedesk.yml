@@ -45,7 +45,7 @@ jobs:
         if: ${{ always() && steps.runner.outputs.report_ready == 'true' }}
         uses: actions/upload-artifact@v7
         with: { name: servicedesk-playwright-json-v1, path: artifacts/demo-runs/ci-servicedesk/raw-report.json }
-      - name: Ingest report into QualityOps Hub
+      - name: Ingest report into TestOps Hub
         id: ingestion
         if: ${{ always() && steps.runner.outputs.report_ready == 'true' && steps.artifact.outcome == 'success' }}
         env:

@@ -112,9 +112,9 @@ export async function submitExternalCiReport({ env, fetchImpl = fetch, readFileI
     const identity = response.status === 409 && typeof body.existingExecutionId === 'string'
       ? ` Existing execution: ${body.existingExecutionId}.`
       : '';
-    throw new Error(`QualityOps ingestion returned HTTP ${response.status}.${identity}`);
+    throw new Error(`TestOps Hub ingestion returned HTTP ${response.status}.${identity}`);
   }
-  if (typeof body.executionId !== 'string') throw new Error('QualityOps ingestion did not return an execution ID.');
+  if (typeof body.executionId !== 'string') throw new Error('TestOps Hub ingestion did not return an execution ID.');
   return {
     httpStatus: response.status,
     executionId: body.executionId,

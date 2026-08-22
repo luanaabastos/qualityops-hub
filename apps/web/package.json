@@ -1,6 +1,6 @@
 {
   "name": "@qualityops-hub/web",
-  "description": "Quality dashboard and local Pipeline Lab for the QualityOps Hub portfolio demo.",
+  "description": "Quality dashboard and Pipeline Lab for the TestOps Hub portfolio demo.",
   "version": "1.0.0",
   "private": true,
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@qualityops-hub/api",
-  "description": "Authenticated report ingestion and PostgreSQL persistence for the QualityOps Hub demo.",
+  "description": "Authenticated report ingestion and PostgreSQL persistence for the TestOps Hub demo.",
   "version": "1.0.0",
   "private": true,
   "type": "module",
