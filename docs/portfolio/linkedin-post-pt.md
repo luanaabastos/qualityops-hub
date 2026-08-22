@@ -2,7 +2,7 @@
 
 Resultados de automação costumam ficar espalhados entre pipelines, relatórios específicos de cada framework, artifacts, logs e execuções históricas. O desafio não é apenas saber se o job terminou: é transformar essas evidências em um histórico comparável e rastreável.
 
-Criei o **QualityOps Hub**, um projeto open source de portfólio que normaliza relatórios de testes e apresenta sinais de qualidade em uma única experiência.
+Criei o **TestOps Hub**, um projeto open source de portfólio que normaliza relatórios de testes e apresenta sinais de qualidade em uma única experiência.
 
 A arquitetura separa execução e análise:
 

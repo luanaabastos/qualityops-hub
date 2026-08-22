@@ -2,7 +2,7 @@
 
 Automation results often end up fragmented across pipelines, framework-specific reports, artifacts, logs, and historical runs. The challenge is not only knowing whether a job finished; it is turning those pieces into comparable, traceable evidence.
 
-I built **QualityOps Hub**, an open-source portfolio project that normalizes test reports and presents quality signals in one experience.
+I built **TestOps Hub**, an open-source portfolio project that normalizes test reports and presents quality signals in one experience.
 
 The architecture separates execution from analysis:
 

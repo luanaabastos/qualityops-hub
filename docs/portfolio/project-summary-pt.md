@@ -1,8 +1,10 @@
-# QualityOps Hub — resumo do projeto
+# TestOps Hub — resumo do projeto
 
 ## Visão geral
 
-QualityOps Hub é uma plataforma TestOps open source criada como projeto independente de portfólio. Ela recebe relatórios produzidos por frameworks diferentes, normaliza seus resultados e apresenta histórico, métricas de qualidade, rastreabilidade de pipeline e sinais de regressão em uma interface única.
+**Uma plataforma que centraliza resultados de testes automatizados, histórico de execuções, cobertura e sinais de regressão.**
+
+TestOps Hub é uma plataforma open source de portfólio criada para tornar evidências de testes da CI mais fáceis de entender. Ela recebe relatórios produzidos por frameworks diferentes, normaliza seus resultados e apresenta histórico, métricas de qualidade, rastreabilidade de pipeline e sinais de regressão em uma interface única.
 
 Todos os produtos, usuários, testes e dados exibidos são fictícios e sintéticos.
 

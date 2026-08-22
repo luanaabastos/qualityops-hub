@@ -1,6 +1,6 @@
 # Security review
 
-QualityOps Hub is a public portfolio demo. These controls reduce risk in that bounded scope; they do not make the application production-ready or multi-tenant.
+TestOps Hub is a public portfolio demo. These controls reduce risk in that bounded scope; they do not make the application production-ready or multi-tenant.
 
 ## Implemented controls
 

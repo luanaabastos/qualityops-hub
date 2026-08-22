@@ -1,4 +1,4 @@
-# QualityOps Hub — portfolio case study
+# TestOps Hub — portfolio case study
 
 ## Problem
 
@@ -6,7 +6,7 @@ Test automation produces evidence in several places: the CI conclusion, framewor
 
 ## Context
 
-QualityOps Hub is an independent, open-source portfolio project. It models three fictional products and uses only synthetic data. The goal was to demonstrate a complete, auditable TestOps path without claiming enterprise scale or connecting to a real organization.
+TestOps Hub is an independent, open-source portfolio project. It models three fictional products and uses only synthetic data. The goal was to demonstrate a complete, auditable path from CI reports to quality insights without claiming enterprise scale or connecting to a real organization.
 
 ## Design goals
 

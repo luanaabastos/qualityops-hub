@@ -2,7 +2,7 @@
 
 ## Scope
 
-QualityOps Hub is a public portfolio project, not a production or multi-tenant service. Security reports are welcome for the API, report adapters, token lifecycle, Pipeline Lab, database handling, workflows, hosted demo, and public assets.
+TestOps Hub is a public portfolio project, not a production or multi-tenant service. Security reports are welcome for the API, report adapters, token lifecycle, Pipeline Lab, database handling, workflows, hosted demo, and public assets.
 
 ## Reporting a vulnerability
 

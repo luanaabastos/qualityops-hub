@@ -1,6 +1,6 @@
 # Architecture
 
-QualityOps Hub is a small monorepo with a React client, Fastify API, shared Zod contracts, fixed local runners, and PostgreSQL. Framework parsing stays in versioned adapters and never enters the route handlers.
+TestOps Hub is a small monorepo with a React client, Fastify API, shared Zod contracts, fixed local runners, and PostgreSQL. Framework parsing stays in versioned adapters and never enters the route handlers.
 
 The hosted shape is one Node process: Fastify serves the compiled React assets and `/api` routes from the same origin. Development retains separate Vite and API processes for fast feedback. See [hosted demo readiness](hosting.md).
 
@@ -10,7 +10,7 @@ flowchart TD
   CI --> Runner[Automated test runner]
   Runner --> Report[Framework report]
   Report --> Artifact
-  Artifact --> API[QualityOps ingestion API]
+  Artifact --> API[TestOps Hub ingestion API]
   API --> Adapter[Report adapter]
   Adapter --> Execution[Normalized execution]
   Execution --> PostgreSQL

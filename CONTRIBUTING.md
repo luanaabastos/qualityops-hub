@@ -1,6 +1,6 @@
 # Contributing
 
-QualityOps Hub is a focused portfolio project. Small, reviewable contributions are preferred.
+TestOps Hub is a focused portfolio project. Small, reviewable contributions are preferred.
 
 ## Setup
 
