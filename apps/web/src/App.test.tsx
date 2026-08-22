@@ -51,9 +51,10 @@ describe('App shell', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders the QualityOps Hub heading', async () => {
+  it('renders the TestOps Hub product introduction', async () => {
     render(<App />);
-    expect(await screen.findByRole('heading', { name: /QualityOps Hub/i })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: /Automated test results, in one place/i })).toBeTruthy();
+    expect(screen.getAllByText(/TestOps Hub/i).length).toBeGreaterThan(0);
   });
 
   it('renders same-origin pipeline URLs as public-safe relative metadata', () => {
@@ -82,8 +83,8 @@ describe('App shell', () => {
     }));
 
     render(<App />);
-    expect(await screen.findByText(/EXTERNAL_CI_INTEGRATION_PENDING/)).toBeTruthy();
-    expect(screen.getByText(/does not start Cypress or Playwright/)).toBeTruthy();
+    expect(await screen.findByText(/Official CI is not configured yet/)).toBeTruthy();
+    expect(screen.getByText(/without starting Cypress or Playwright/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Preview pipeline flow' })).toBeTruthy();
   });
 });

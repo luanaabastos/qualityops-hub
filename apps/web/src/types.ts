@@ -61,6 +61,8 @@ export type Execution = {
   source: string;
   origin: 'SEEDED_DEMO' | 'DEMO_PIPELINE' | 'EXTERNAL_CI';
   reportFormat: string;
+  framework: string;
+  branch: string;
   suiteType: string;
 };
 

@@ -262,8 +262,10 @@ export class QualityRepository {
     const filter = productKey ? 'WHERE p.product_key=$1' : '';
     if (productKey) values.push(productKey);
     const result = await this.database.pool.query(
-      `SELECT e.*, p.product_key, p.name product_name FROM test_executions e
-       JOIN products p ON p.id=e.product_id ${filter} ORDER BY e.created_at DESC, e.id DESC`, values
+      `SELECT e.*, p.product_key, p.name product_name, p.framework, pm.branch FROM test_executions e
+       JOIN products p ON p.id=e.product_id
+       LEFT JOIN pipeline_metadata pm ON pm.execution_id=e.id
+       ${filter} ORDER BY e.created_at DESC, e.id DESC`, values
     );
     return result.rows.map((row) => ({
       id: row.id,
@@ -283,6 +285,8 @@ export class QualityRepository {
       source: row.source,
       origin: row.origin,
       reportFormat: row.report_format,
+      framework: row.framework,
+      branch: row.branch ?? 'not provided',
       suiteType: row.suite_type
     }));
   }

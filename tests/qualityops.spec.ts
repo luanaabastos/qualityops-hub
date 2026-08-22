@@ -16,7 +16,7 @@ async function runPipeline(page: Page, product: string, mode: string) {
   await expect(page.getByRole('heading', { name: 'Pipeline result' })).toBeVisible({ timeout: 120_000 });
 }
 
-test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
+test.describe.serial('TestOps Hub live pipeline', () => {
   test.setTimeout(150_000);
 
   test('Pipeline Lab runs a real ShopSphere Cypress success and opens persisted details', async ({ page }) => {
@@ -26,11 +26,11 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await expect(page.getByText('Executed').last().locator('..')).toContainText('5');
     await page.getByRole('link', { name: 'View execution' }).click();
     await expect(page.getByRole('heading', { name: 'ShopSphere execution' })).toBeVisible();
-    await expect(page.getByText('mochawesome', { exact: true })).toBeVisible();
-    await expect(page.getByText('Local demo run', { exact: true })).toBeVisible();
+    await expect(page.getByText('Mochawesome', { exact: true })).toBeVisible();
+    await expect(page.getByText('Local Demo', { exact: true })).toBeVisible();
     await expect(page.getByText('adds an item to the cart', { exact: true })).toBeVisible();
-    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Pipeline metadata' }) });
-    await expect(metadata.getByRole('button', { name: 'Copy pipelineId' })).toBeVisible();
+    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Artifacts and evidence' }) });
+    await expect(metadata.getByRole('button', { name: 'Copy Pipeline ID' })).toBeVisible();
   });
 
   test('ShopSphere functional failure updates dashboard and regression delta', async ({ page }) => {
@@ -40,9 +40,9 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await page.goto('/');
     const card = page.locator('.product-card').filter({ hasText: 'ShopSphere' });
     await expect(card).toContainText('FAILED');
-    await expect(card).toContainText('Local demo run');
+    await expect(card).toContainText('Local Demo');
     await page.goto('/products/shopsphere');
-    const delta = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Regression delta' }) });
+    const delta = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Regression Delta' }) });
     await expect(delta).toContainText('New failures');
     await expect(delta).toContainText('1');
   });
@@ -53,7 +53,8 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await expect(page.getByText('Executed').last().locator('..')).toContainText('0');
     await expect(page.getByText('Errors').last().locator('..')).toContainText('1');
     await page.getByRole('link', { name: 'View execution' }).click();
-    await expect(page.getByText('No execution', { exact: true })).toBeVisible();
+    await expect(page.getByText('Infrastructure errors', { exact: true }).locator('..')).toContainText('1');
+    await expect(page.getByText(/No tests executed because this run ended before browser assertions started/)).toBeVisible();
     await expect(page.getByText(/MOBILE_HARNESS_DEMO startup was intentionally interrupted/)).toBeVisible();
     await expect(page.getByText(/Android device was used/)).toBeVisible();
   });
@@ -62,21 +63,55 @@ test.describe.serial('QualityOps Hub checkpoint 4 live pipeline', () => {
     await page.goto('/platform-health');
     const services = page.locator('section.panel');
     await expect(services).toContainText('API');
-    await expect(services).toContainText('PostgreSQL');
-    await expect(services).toContainText('Object Storage');
-    await expect(services).toContainText('Demo runners');
-    await expect(services.getByText('ready', { exact: true })).toHaveCount(3);
-    await expect(services.getByText('not configured', { exact: true })).toBeVisible();
+    await expect(services).toContainText('Database');
+    await expect(services).toContainText('Browser execution');
+    await expect(services).toContainText('Hosted runner');
+    await expect(services).toContainText('Object storage');
+    await expect(services.getByText('operational', { exact: true })).toBeVisible();
+    await expect(services.getByText('connected', { exact: true })).toBeVisible();
   });
 });
 
-test.describe('QualityOps Hub portfolio presentation', () => {
+test.describe('TestOps Hub portfolio presentation', () => {
+  test('explains the product, evidence sources and execution traceability in plain language', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Automated test results, in one place.' })).toBeVisible();
+    await expect(page.getByText('From CI test execution to actionable quality insights.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Why TestOps Hub?' })).toBeVisible();
+    await expect(page.getByText('Official CI', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Hosted Preview', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Demo Data', { exact: true }).first()).toBeVisible();
+
+    const qualityHelp = page.getByRole('button', { name: /Quality Score: Current quality indicator/ });
+    await qualityHelp.focus();
+    await expect(page.getByRole('tooltip').filter({ hasText: 'Current quality indicator' })).toBeVisible();
+
+    await page.goto('/products');
+    for (const column of ['Framework', 'Data source', 'Evidence', 'Last official CI']) {
+      await expect(page.getByRole('columnheader', { name: column })).toBeVisible();
+    }
+
+    await page.goto('/executions');
+    for (const column of ['Run time', 'Framework', 'Branch', 'Data source', 'Evidence']) {
+      await expect(page.getByRole('columnheader', { name: column })).toBeVisible();
+    }
+    await page.getByRole('link', { name: 'View execution' }).first().click();
+    for (const heading of ['Execution summary', 'Test results', 'Regression Delta', 'Artifacts and evidence']) {
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    }
+
+    await page.goto('/how-it-works');
+    for (const heading of ['Evidence is spread across tools', 'From CI to one quality view', 'Browsers run in GitHub Actions', 'The source is always visible']) {
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    }
+  });
+
   test('Coverage explains the demo model and keeps it separate from approval', async ({ page }) => {
     await page.goto('/coverage');
     await expect(page.getByRole('heading', { name: 'Automation Coverage' })).toBeVisible();
     await expect(page.getByText('70%', { exact: true })).toBeVisible();
-    await expect(page.getByText('28 of 40 eligible scenarios')).toBeVisible();
-    await expect(page.getByText('Coverage is not approval.')).toBeVisible();
+    await expect(page.getByText('28 of 40 mapped quality scenarios')).toBeVisible();
+    await expect(page.getByText('Automation Coverage is not code coverage or approval.')).toBeVisible();
     await expect(page.getByRole('progressbar')).toHaveCount(4);
   });
 
@@ -98,7 +133,7 @@ test.describe('QualityOps Hub portfolio presentation', () => {
     await expect(page.getByText('Authenticated ingestion')).toBeVisible();
 
     await page.goto('/documentation');
-    await expect(page.getByRole('heading', { name: 'Documentation' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Docs' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Report adapters' })).toBeVisible();
     await expect(page.getByText('Troubleshooting', { exact: true })).toHaveCount(6);
 

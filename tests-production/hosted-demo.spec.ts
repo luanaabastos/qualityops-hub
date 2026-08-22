@@ -37,10 +37,10 @@ test.describe.serial('hosted production smoke', () => {
     await expect(page.getByText('PASSED', { exact: true }).last()).toBeVisible();
     await page.getByRole('link', { name: 'View execution' }).click();
     await expect(page.getByRole('heading', { name: 'ShopSphere execution' })).toBeVisible();
-    await expect(page.getByText('mochawesome', { exact: true })).toBeVisible();
-    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Pipeline metadata' }) });
+    await expect(page.getByText('Mochawesome', { exact: true })).toBeVisible();
+    const metadata = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Artifacts and evidence' }) });
     await expect(metadata).not.toContainText(/https?:\/\/(?:localhost|127\.0\.0\.1)/);
-    await expect(metadata.getByRole('button', { name: 'Copy pipelineId' })).toBeVisible();
+    await expect(metadata.getByRole('button', { name: 'Copy Pipeline ID' })).toBeVisible();
   });
 
   test('ShopSphere Functional Failure updates Dashboard and Regression Delta', async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe.serial('hosted production smoke', () => {
     await page.goto('/');
     await expect(page.locator('.product-card').filter({ hasText: 'ShopSphere' })).toContainText('FAILED');
     await page.goto('/products/shopsphere');
-    const delta = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Regression delta' }) });
+    const delta = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Regression Delta' }) });
     await expect(delta).toContainText('New failures');
     await expect(delta).toContainText('1');
   });

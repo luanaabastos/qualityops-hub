@@ -4,7 +4,7 @@ import { fetchProducts } from './api';
 import type { ProductSummary } from './types';
 
 function pageStatusClass(value: string) {
-  return value.toLowerCase().replaceAll('_', '-');
+  return value.toLowerCase().replaceAll('_', '-').replaceAll(' ', '-');
 }
 
 function portfolioDate(value: string | null) {
@@ -12,7 +12,7 @@ function portfolioDate(value: string | null) {
   return new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-function PortfolioPageHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
+function PortfolioPageHeader({ eyebrow, title, description, demo = true }: { eyebrow: string; title: string; description: string; demo?: boolean }) {
   return (
     <header className="topbar" aria-label="Page header">
       <div>
@@ -20,7 +20,7 @@ function PortfolioPageHeader({ eyebrow, title, description }: { eyebrow: string;
         <h1>{title}</h1>
         <p className="page-description">{description}</p>
       </div>
-      <div className="header-badges"><span className="demo-badge">DEMO DATA</span></div>
+      {demo ? <div className="header-badges"><span className="demo-badge" title="Synthetic data used only to demonstrate the interface">DEMO DATA</span></div> : null}
     </header>
   );
 }
@@ -31,11 +31,11 @@ export function CoveragePage() {
       <PortfolioPageHeader
         eyebrow="Test plan visibility"
         title="Automation Coverage"
-        description="A transparent demo model of how much of the eligible test plan is automated."
+        description="Percentage of mapped quality scenarios currently covered by automated tests. This is not code coverage."
       />
       <section className="coverage-summary" aria-label="Automation coverage summary">
         <article className="coverage-hero">
-          <span>Overall coverage</span>
+          <span>Overall automation coverage</span>
           <strong>{demoAutomationCoverageSummary.percentage}%</strong>
           <div
             className="coverage-track"
@@ -47,7 +47,7 @@ export function CoveragePage() {
           >
             <span style={{ width: `${demoAutomationCoverageSummary.percentage}%` }} />
           </div>
-          <small>{demoAutomationCoverageSummary.automated} of {demoAutomationCoverageSummary.eligible} eligible scenarios</small>
+          <small>{demoAutomationCoverageSummary.automated} of {demoAutomationCoverageSummary.eligible} mapped quality scenarios</small>
         </article>
         <div className="coverage-totals">
           <article><span>Eligible</span><strong>{demoAutomationCoverageSummary.eligible}</strong><small>Scenarios suitable for automation</small></article>
@@ -81,7 +81,7 @@ export function CoveragePage() {
         </div>
       </section>
       <aside className="notice info-notice" aria-label="Coverage definition">
-        <strong>Coverage is not approval.</strong> Automation coverage measures how much of the eligible test plan is automated. It is independent from execution approval.
+        <strong>Automation Coverage is not code coverage or approval.</strong> It measures how much of the fictional quality-scenario plan is mapped to automated tests.
       </aside>
     </>
   );
@@ -161,9 +161,9 @@ export function AutomationPlanPage() {
 }
 
 const integrationDefinitions = {
-  shopsphere: { framework: 'Cypress', report: 'Mochawesome', mode: 'Browser runner' },
-  servicedesk: { framework: 'Playwright', report: 'playwright-json-v1', mode: 'Browser runner' },
-  pocketwallet: { framework: 'MOBILE_HARNESS_DEMO', report: 'mobile-e2e-json-v1', mode: 'Mobile Harness Demo' }
+  shopsphere: { framework: 'Cypress', report: 'Mochawesome', mode: 'Supported real CI', evidence: 'Official CI' },
+  servicedesk: { framework: 'Playwright', report: 'Playwright JSON', mode: 'Supported real CI', evidence: 'Official CI' },
+  pocketwallet: { framework: 'Mobile Harness Demo', report: 'mobile-e2e-json-v1', mode: 'Demo only', evidence: 'Synthetic' }
 } as const;
 
 export function IntegrationsPage() {
@@ -175,7 +175,7 @@ export function IntegrationsPage() {
 
   return (
     <>
-      <PortfolioPageHeader eyebrow="Report connections" title="Integrations" description="Known product adapters and their latest persisted ingestion state." />
+      <PortfolioPageHeader eyebrow="Normalization inputs" title="Integrations" description="Test frameworks and CI sources supported by the normalization pipeline." demo={false} />
       {failed ? <div className="message-panel error-message" role="alert">Integration status is unavailable because the API could not be reached.</div> : null}
       {!failed && products === null ? <div className="message-panel" role="status">Loading integration status…</div> : null}
       {products ? <section className="integration-grid" aria-label="Product integrations">
@@ -187,9 +187,10 @@ export function IntegrationsPage() {
             <dl>
               <div><dt>Framework</dt><dd>{definition.framework}</dd></div>
               <div><dt>Report</dt><dd>{definition.report}</dd></div>
-              <div><dt>Adapter</dt><dd><span className="pill ready">Ready</span></dd></div>
+              <div><dt>Support</dt><dd><span className="pill ready">{definition.mode}</span></dd></div>
+              <div><dt>Evidence</dt><dd>{definition.evidence}</dd></div>
               <div><dt>Authentication</dt><dd>Product token</dd></div>
-              <div><dt>Origin</dt><dd>{product.isOfficial ? 'GitHub Actions' : product.origin === 'SEEDED_DEMO' ? 'Seeded demo history' : product.origin ? 'Local demo run' : 'No execution'}</dd></div>
+              <div><dt>Data source</dt><dd>{product.isOfficial ? 'GitHub Actions' : product.origin === 'SEEDED_DEMO' ? 'Demo Data' : product.origin ? 'Local Demo' : 'No execution'}</dd></div>
               <div><dt>Last ingestion</dt><dd>{portfolioDate(product.lastExecutionAt)}</dd></div>
               <div><dt>Status</dt><dd>{product.status}</dd></div>
             </dl>
@@ -254,7 +255,7 @@ const documents = [
 export function DocumentationPage() {
   return (
     <>
-      <PortfolioPageHeader eyebrow="Product guide" title="Documentation" description="Concise operating guides for the public portfolio experience." />
+      <PortfolioPageHeader eyebrow="Product guide" title="Docs" description="Concise operating guides for the public portfolio experience." demo={false} />
       <nav className="docs-navigation" aria-label="Documentation topics">
         {documents.map((document) => <a href={`#${document.id}`} key={document.id}>{document.title}</a>)}
       </nav>

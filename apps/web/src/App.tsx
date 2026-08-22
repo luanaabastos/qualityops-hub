@@ -42,12 +42,12 @@ const menuItems = [
   { label: 'Pipeline Lab', to: '/pipeline-lab' },
   { label: 'Products', to: '/products' },
   { label: 'Executions', to: '/executions' },
-  { label: 'Coverage', to: '/coverage' },
+  { label: 'Automation Coverage', to: '/coverage' },
   { label: 'Integrations', to: '/integrations' },
   { label: 'Automation Plan', to: '/automation-plan' },
   { label: 'Video Evidence', to: '/video-evidence' },
-  { label: 'Documentation', to: '/documentation' },
-  { label: 'How it works', to: '/how-it-works' },
+  { label: 'Docs', to: '/documentation' },
+  { label: 'How It Works', to: '/how-it-works' },
   { label: 'Platform Health', to: '/platform-health' }
 ];
 
@@ -71,13 +71,20 @@ function formatDuration(duration: number) {
 }
 
 function statusClass(value: string) {
-  return value.toLowerCase().replaceAll('_', '-');
+  return value.toLowerCase().replaceAll('_', '-').replaceAll(' ', '-');
 }
 
 function formatReport(value: string) {
   if (value === 'mochawesome') return 'Mochawesome';
   if (value === 'playwright-json-v1') return 'playwright-json-v1';
   if (value === 'mobile-e2e-json-v1') return 'mobile-e2e-json-v1';
+  return value;
+}
+
+function frameworkLabel(value: string) {
+  if (value === 'mochawesome') return 'Cypress';
+  if (value === 'playwright-json-v1') return 'Playwright';
+  if (value === 'mobile-e2e-json-v1') return 'Mobile Harness Demo';
   return value;
 }
 
@@ -90,16 +97,33 @@ function originClass(origin: ExecutionOrigin) {
 }
 
 function originLabel(origin: ExecutionOrigin) {
-  if (origin === 'DEMO_PIPELINE') return 'Local demo run';
-  if (origin === 'EXTERNAL_CI') return 'GitHub Actions';
-  return 'Seeded demo history';
+  if (origin === 'DEMO_PIPELINE') return 'Local Demo';
+  if (origin === 'EXTERNAL_CI') return 'Official CI';
+  return 'Demo Data';
 }
 
 function originSourceLabel(origin: ExecutionOrigin | null) {
-  if (origin === 'EXTERNAL_CI') return 'GITHUB_ACTIONS';
-  if (origin === 'DEMO_PIPELINE') return 'DEMO_PIPELINE';
-  if (origin === 'SEEDED_DEMO') return 'SEEDED_DEMO';
+  if (origin === 'EXTERNAL_CI') return 'GitHub Actions';
+  if (origin === 'DEMO_PIPELINE') return 'Local demo runner';
+  if (origin === 'SEEDED_DEMO') return 'Synthetic seed';
   return 'No execution';
+}
+
+const helpText = {
+  approvalRate: 'Percentage of executed tests that passed.',
+  qualityScore: 'Current quality indicator calculated from official CI evidence.',
+  regressionDelta: 'Changes in test failures compared with the previous official execution.',
+  automationCoverage: 'Percentage of mapped quality scenarios currently covered by automated tests.'
+} as const;
+
+function HelpTerm({ label, description }: { label: string; description: string }) {
+  return (
+    <span className="help-term">
+      <span>{label}</span>
+      <button type="button" className="help-trigger" aria-label={`${label}: ${description}`}>?</button>
+      <span className="help-tooltip" role="tooltip">{description}</span>
+    </span>
+  );
 }
 
 export function formatMetadataValue(key: string, value: string, origin: string) {
@@ -116,7 +140,7 @@ function PageHeader({
   eyebrow,
   title,
   description,
-  demo = true,
+  demo = false,
   status
 }: {
   eyebrow: string;
@@ -134,7 +158,7 @@ function PageHeader({
       </div>
       <div className="header-badges">
         {status ? <span className={`pill ${statusClass(status)}`}>{status}</span> : null}
-        {demo ? <span className="demo-badge">DEMO DATA</span> : null}
+        {demo ? <span className="demo-badge" title="Synthetic data used only to demonstrate the interface">DEMO DATA</span> : null}
       </div>
     </header>
   );
@@ -148,10 +172,10 @@ function Feedback({ children, error = false }: { children: React.ReactNode; erro
   );
 }
 
-function StatCard({ label, value, subtitle }: { label: string; value: string; subtitle: string }) {
+function StatCard({ label, value, subtitle, help }: { label: string; value: string; subtitle: string; help?: string }) {
   return (
     <article className="stat-card">
-      <span>{label}</span>
+      {help ? <HelpTerm label={label} description={help} /> : <span>{label}</span>}
       <strong>{value}</strong>
       <small>{subtitle}</small>
     </article>
@@ -177,23 +201,49 @@ function OverviewPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Platform overview"
-        title="QualityOps Hub"
-        description="Official aggregate metrics come only from real external-CI reports; fictional products and seed history remain clearly labeled."
+        eyebrow="TestOps Hub"
+        title="Automated test results, in one place."
+        description="Turn CI executions into traceable quality metrics, history and regression insights."
       />
 
+      <section className="hero-intro" aria-label="TestOps Hub introduction">
+        <p className="hero-tagline">From CI test execution to actionable quality insights.</p>
+        <p>TestOps Hub collects test reports from CI pipelines, normalizes results from different frameworks and turns them into a clear view of product quality.</p>
+        <NavLink className="primary-link" to="/how-it-works">See how it works</NavLink>
+      </section>
+
+      <section className="panel clarity-panel" aria-labelledby="why-testops-title">
+        <div>
+          <p className="eyebrow">The problem</p>
+          <h2 id="why-testops-title">Why TestOps Hub?</h2>
+          <p>Test results are usually spread across GitHub Actions, artifacts, reports, logs, frameworks and older executions.</p>
+          <p><strong>Instead of checking each source manually, TestOps Hub provides one consolidated view of test quality.</strong></p>
+        </div>
+        <ol className="plain-flow" aria-label="Test evidence flow">
+          {['CI Pipeline', 'Automated Tests', 'Test Reports', 'TestOps Hub', 'History + Metrics + Regression Signals'].map((step) => <li key={step}>{step}</li>)}
+        </ol>
+      </section>
+
+      <section className="evidence-grid" aria-labelledby="evidence-key-title">
+        <h2 id="evidence-key-title">What is real and what is demo?</h2>
+        <article><span className="origin-badge external">Official CI</span><p>Real browser tests executed by GitHub Actions and ingested into the platform.</p></article>
+        <article><span className="origin-badge live">Hosted Preview</span><p>Safe hosted demonstration that does not create official quality evidence.</p></article>
+        <article><span className="origin-badge seeded">Demo Data</span><p>Synthetic data used only to demonstrate parts of the interface.</p></article>
+      </section>
+
       <section className="stats-grid" aria-label="Quality summary">
-        <StatCard label="Quality Score" value={dashboard.qualityScore === null ? 'No official execution' : `${dashboard.qualityScore.toFixed(1)}%`} subtitle="Official CI approval minus infrastructure penalty" />
-        <StatCard label="Approval Rate" value={formatApproval(dashboard.approvalRate)} subtitle="Official CI passed / executed" />
-        <StatCard label="Executed" value={String(dashboard.testsExecuted)} subtitle="Latest official product runs" />
-        <StatCard label="Passed" value={String(dashboard.passed)} subtitle="Official successful tests" />
-        <StatCard label="Failed" value={String(dashboard.failed)} subtitle="Official functional failures" />
-        <StatCard label="Infrastructure Errors" value={String(dashboard.infrastructureErrors)} subtitle="Official runner incidents" />
+        <StatCard label="Quality Score" value={dashboard.qualityScore === null ? 'No official execution' : `${dashboard.qualityScore.toFixed(1)}%`} subtitle="Current indicator from official CI evidence" help={helpText.qualityScore} />
+        <StatCard label="Approval Rate" value={formatApproval(dashboard.approvalRate)} subtitle="Percentage of executed tests that passed" help={helpText.approvalRate} />
+        <StatCard label="Executed" value={String(dashboard.testsExecuted)} subtitle="Tests included in latest official CI runs" />
+        <StatCard label="Passed" value={String(dashboard.passed)} subtitle="Tests that completed successfully" />
+        <StatCard label="Failed" value={String(dashboard.failed)} subtitle="Tests that detected a functional failure" />
+        <StatCard label="Infrastructure Errors" value={String(dashboard.infrastructureErrors)} subtitle="Runs blocked by the environment or runner" />
         <StatCard label="Products" value={String(dashboard.products)} subtitle={`${dashboard.officialProducts} with official CI history`} />
         <StatCard
           label="Automation Coverage"
           value={dashboard.automationCoverage === null ? 'Not configured' : `${dashboard.automationCoverage.toFixed(1)}%`}
-          subtitle={dashboard.automationCoverage === null ? 'No eligible test plan is configured' : 'Automated / eligible demo scenarios'}
+          subtitle={dashboard.automationCoverage === null ? 'No eligible test plan is configured' : 'Mapped scenarios covered by automated tests'}
+          help={helpText.automationCoverage}
         />
       </section>
 
@@ -236,7 +286,7 @@ function OverviewPage() {
               </dl>
 
               <span className={`pill ${statusClass(product.executionStatus)}`}>Latest outcome: {product.executionStatus.replaceAll('_', ' ')}</span>
-              {product.origin ? <span className={`origin-badge ${originClass(product.origin)}`}>{originLabel(product.origin)}</span> : null}
+              {product.origin ? <span className={`origin-badge ${originClass(product.origin)}`} title={product.isOfficial ? 'Real browser evidence from GitHub Actions' : 'Synthetic demonstration data'}>{originLabel(product.origin)}</span> : null}
 
               <NavLink className="detail-link" to={`/products/${product.key}`}>
                 View details
@@ -261,7 +311,7 @@ function ProductsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Inventory" title="Products" description="Real external-CI runs are authoritative; synthetic fallback history remains explicitly labeled." />
+      <PageHeader eyebrow="Evidence inventory" title="Products" description="See which framework, data source and evidence type support each fictional product." />
       <section className="panel full-width" aria-labelledby="products-table-title">
         <div className="section-header">
           <h2 id="products-table-title">Monitored products</h2>
@@ -272,11 +322,11 @@ function ProductsPage() {
         {products ? (
           <div className="table-wrap" tabIndex={0} aria-label="Scrollable products table">
             <table>
-              <caption className="sr-only">Synthetic product quality summary</caption>
+              <caption className="sr-only">Product quality evidence summary</caption>
               <thead>
                 <tr>
-                  <th>Product</th><th>Framework</th><th>Status</th><th>Last run</th>
-                  <th>Total</th><th>Passed</th><th>Failed</th><th>Approval</th><th>Freshness</th>
+                  <th>Product</th><th>Framework</th><th>Data source</th><th>Evidence</th><th>Status</th><th>Last official CI</th>
+                  <th>Executed</th><th>Passed</th><th>Failed</th><th>Approval</th><th>Freshness</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,9 +334,11 @@ function ProductsPage() {
                   <tr key={product.key}>
                     <td><NavLink to={`/products/${product.key}`}>{product.name}</NavLink></td>
                     <td>{product.framework}</td>
+                    <td>{originSourceLabel(product.origin)}</td>
+                    <td>{product.origin ? <span className={`origin-badge ${originClass(product.origin)}`}>{originLabel(product.origin)}</span> : 'No evidence'}</td>
                     <td><span className={`pill ${statusClass(product.status)}`}>{product.status}</span></td>
-                    <td>{formatDate(product.lastExecutionAt)}</td>
-                    <td>{product.total}</td><td>{product.passed}</td><td>{product.failed}</td>
+                    <td>{product.isOfficial ? formatDate(product.lastExecutionAt) : 'Not available — demo only'}</td>
+                    <td>{product.executed}</td><td>{product.passed}</td><td>{product.failed}</td>
                     <td>{formatApproval(product.approvalRate)}</td><td>{product.freshness}</td>
                   </tr>
                 ))}
@@ -373,15 +425,15 @@ function ProductDetailPage() {
 
       <section className="panel" aria-labelledby="regression-title">
         <div className="section-header">
-          <h2 id="regression-title">Regression delta</h2>
+          <h2 id="regression-title" aria-label="Regression Delta"><HelpTerm label="Regression Delta" description={helpText.regressionDelta} /></h2>
           <span>{product.isOfficial ? 'Compared with prior GitHub Actions history' : 'Compared within the same demo origin'}</span>
         </div>
         <div className="delta-grid">
-          <div><span>New failures</span><strong>{delta.newFailures}</strong></div>
-          <div><span>Recovered tests</span><strong>{delta.recovered}</strong></div>
-          <div><span>Persistent failures</span><strong>{delta.persistentFailures}</strong></div>
-          <div><span>New tests</span><strong>{delta.newTests}</strong></div>
-          <div><span>Removed tests</span><strong>{delta.removedTests}</strong></div>
+          <div><span>New failures</span><strong>{delta.newFailures}</strong><small>Started failing now</small></div>
+          <div><span>Recovered</span><strong>{delta.recovered}</strong><small>Failing before, passing now</small></div>
+          <div><span>Persistent failures</span><strong>{delta.persistentFailures}</strong><small>Still failing</small></div>
+          <div><span>New tests</span><strong>{delta.newTests}</strong><small>First seen in this report</small></div>
+          <div><span>Removed tests</span><strong>{delta.removedTests}</strong><small>No longer in this report</small></div>
         </div>
       </section>
 
@@ -423,12 +475,12 @@ function ExecutionTable({
   return (
     <div className="table-wrap" tabIndex={0} aria-label="Scrollable executions table">
       <table>
-        <caption className="sr-only">Synthetic execution history</caption>
+        <caption className="sr-only">Execution history</caption>
         <thead>
           <tr>
             {showProduct ? <th>Product</th> : null}
-            <th>Date</th><th>Status</th><th>Executed</th><th>Passed</th><th>Failed</th>
-            <th>Infrastructure</th><th>Approval</th><th>Duration</th><th>Origin</th><th>Details</th>
+            <th>Run time</th><th>Framework</th><th>Branch</th><th>Status</th><th>Executed</th><th>Passed</th><th>Failed</th>
+            <th>Infrastructure errors</th><th>Duration</th><th>Data source</th><th>Evidence</th><th>Details</th>
           </tr>
         </thead>
         <tbody>
@@ -436,16 +488,18 @@ function ExecutionTable({
             <tr key={entry.id}>
               {showProduct ? <td>{productNames[entry.productKey] ?? entry.productKey}</td> : null}
               <td>{formatDate(entry.date)}</td>
+              <td>{entry.framework || frameworkLabel(entry.reportFormat)}</td>
+              <td><code>{entry.branch}</code></td>
               <td><span className={`pill ${statusClass(entry.status)}`}>{entry.status.replaceAll('_', ' ')}</span></td>
               <td>{entry.executed}</td><td>{entry.passed}</td><td>{entry.failed}</td>
-              <td>{entry.infrastructureErrors}</td><td>{formatApproval(entry.approval)}</td>
-              <td>{formatDuration(entry.duration)}</td>
+              <td>{entry.infrastructureErrors}</td><td>{formatDuration(entry.duration)}</td>
+              <td>{originSourceLabel(entry.origin)}</td>
               <td><span className={`origin-badge ${originClass(entry.origin)}`}>{originLabel(entry.origin)}</span></td>
               <td><NavLink to={`/executions/${entry.id}`}>View execution</NavLink></td>
             </tr>
           ))}
           {executions.length === 0 ? (
-            <tr><td className="empty-state" colSpan={showProduct ? 11 : 10}>No executions match the selected filters.</td></tr>
+            <tr><td className="empty-state" colSpan={showProduct ? 13 : 12}>No executions match the selected product and status. Adjust the filters to see other evidence.</td></tr>
           ) : null}
         </tbody>
       </table>
@@ -491,7 +545,7 @@ function ExecutionsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Execution history" title="Executions" description="Passed, failed, stale and infrastructure outcomes use synthetic demo runs." />
+      <PageHeader eyebrow="Traceable run history" title="Executions" description="Compare when tests ran, what framework produced the report, where it came from and whether it counts as official evidence." />
       <section className="panel full-width" aria-labelledby="execution-table-title">
         <div className="section-header">
           <h2 id="execution-table-title">Run history</h2>
@@ -642,21 +696,21 @@ function PipelineLabPage() {
   return (
     <>
       <PageHeader
-        eyebrow={hostedPreview ? 'Hosted portfolio preview' : 'Bounded local demo runner'}
+        eyebrow={hostedPreview ? 'Hosted Preview' : 'Local Demo'}
         title="Pipeline Lab"
         description={hostedPreview
-          ? 'Preview the mapped pipeline stages without starting a browser process or creating official execution history.'
-          : 'Run a fixed, allow-listed fictional pipeline through the authenticated ingestion API.'}
+          ? 'Demonstrate the ingestion flow safely without creating official CI evidence.'
+          : 'Run a fixed fictional pipeline through the same authenticated ingestion flow used by CI.'}
       />
       {hostedPreview ? (
         <div className="notice warning-notice">
-          <strong>External browser execution — {demoConfig?.externalCiStatus}</strong>
+          <strong><span className="origin-badge live">Hosted Preview</span> {externalCiActive ? 'Official CI is active.' : 'Official CI is not configured yet.'}</strong>
           <p>{externalCiActive
-            ? 'Real Cypress and Playwright reports are supplied by GitHub Actions. This hosted free-tier preview still starts no browser and creates no official execution.'
-            : 'Browser execution will be performed by external CI after that integration is configured. This hosted free-tier preview does not start Cypress or Playwright, generate test reports, or create official execution history.'} PocketWallet remains explicitly modeled as MOBILE_HARNESS_DEMO.</p>
+            ? 'Hosted Preview demonstrates the ingestion flow without creating official CI evidence. It does not run Cypress or Playwright on Render Free; real browser executions and reports are produced by GitHub Actions.'
+            : 'This preview demonstrates the flow without starting Cypress or Playwright, generating reports or changing official metrics.'} PocketWallet remains a synthetic Mobile Harness Demo, not an Android device run.</p>
         </div>
       ) : null}
-      <div className="notice warning-notice"><strong>Pipeline Lab runs synthetic portfolio scenarios only.</strong> It accepts no commands, URLs, environment values, or filesystem paths.</div>
+      <div className="notice info-notice"><strong>This lab is safe and bounded.</strong> Visitors choose mapped options only; it accepts no commands, URLs, environment values or filesystem paths.</div>
       <section className="panel pipeline-layout" aria-labelledby="pipeline-form-title">
         <form onSubmit={submit} className="pipeline-form">
           <h2 id="pipeline-form-title">Run a demo pipeline</h2>
@@ -714,7 +768,7 @@ function PipelineLabPage() {
       ) : null}
       {!result && run?.state === 'COMPLETED' && run.runnerMode === 'hosted-preview' ? (
         <section className="panel" aria-labelledby="pipeline-preview-title">
-          <div className="section-header"><h2 id="pipeline-preview-title">Hosted preview complete</h2><span>{run.previewStatus}</span></div>
+          <div className="section-header"><h2 id="pipeline-preview-title">Hosted Preview complete</h2><span>{externalCiActive ? 'Official CI active' : 'Official CI not configured'}</span></div>
           <div className="notice warning-notice">
             <strong>No official execution was created.</strong>
             <p>This preview demonstrates the orchestration boundary only. Test counts, reports, artifacts, and dashboard history remain reserved for authenticated ingestion from real external CI.</p>
@@ -743,6 +797,21 @@ function CopyableValue({ label, value }: { label: string; value: string }) {
   );
 }
 
+function metadataLabel(key: string) {
+  const labels: Record<string, string> = {
+    branch: 'Branch',
+    commitSha: 'Commit',
+    pipelineId: 'Pipeline ID',
+    pipelineUrl: 'Workflow URL',
+    jobId: 'Job ID',
+    jobName: 'Job name',
+    jobUrl: 'Job URL',
+    artifactUrl: 'Report artifact',
+    environment: 'Environment'
+  };
+  return labels[key] ?? key;
+}
+
 function ExecutionDetailsPage() {
   const { executionId } = useParams();
   const [execution, setExecution] = useState<ExecutionDetailsModel | null>(null);
@@ -758,74 +827,71 @@ function ExecutionDetailsPage() {
     <>
       <PageHeader eyebrow="Execution details" title={`${execution.productName} execution`} description={execution.id} status={execution.status} />
       {execution.status === 'ERROR' ? <div className="notice infrastructure-notice"><strong>Infrastructure error — tests did not execute</strong><p>{execution.infrastructureError?.message}</p></div> : null}
-      <section className="panel"><h2>Summary</h2><div className="metrics-grid">
-        <div><span>Total</span><strong>{execution.summary.total}</strong></div><div><span>Executed</span><strong>{execution.summary.executed}</strong></div>
-        <div><span>Passed</span><strong>{execution.summary.passed}</strong></div><div><span>Failed</span><strong>{execution.summary.failed}</strong></div>
-        <div><span>Skipped</span><strong>{execution.summary.skipped}</strong></div><div><span>Errors</span><strong>{execution.summary.errors}</strong></div>
-        <div><span>Approval</span><strong>{formatApproval(execution.approvalRate)}</strong></div><div><span>Duration</span><strong>{formatDuration(execution.durationMs)}</strong></div>
+      <section className="panel" aria-labelledby="execution-summary-title"><h2 id="execution-summary-title">Execution summary</h2><div className="metrics-grid">
+        <div><span>Product</span><strong>{execution.productName}</strong></div><div><span>Status</span><strong>{execution.status}</strong></div>
+        <div><span>Source</span><strong>{originSourceLabel(execution.origin)}</strong></div><div><span>Evidence</span><strong><span className={`origin-badge ${originClass(execution.origin)}`}>{originLabel(execution.origin)}</span></strong></div>
+        <div><span>Framework</span><strong>{frameworkLabel(execution.reportFormat)}</strong></div>
+        <div><span>Branch</span><strong>{execution.pipeline.branch ?? 'Not provided'}</strong></div><div><span>Commit</span><strong>{execution.pipeline.commitSha ?? 'Not provided'}</strong></div>
+        <div><span>Executed</span><strong>{execution.summary.executed}</strong></div><div><span>Passed</span><strong>{execution.summary.passed}</strong></div>
+        <div><span>Failed</span><strong>{execution.summary.failed}</strong></div><div><span>Infrastructure errors</span><strong>{execution.summary.errors}</strong></div>
+        <div><span>Started</span><strong>{formatDate(execution.startedAt)}</strong></div><div><span>Duration</span><strong>{formatDuration(execution.durationMs)}</strong></div>
       </div></section>
-      <section className="panel"><h2>Pipeline metadata</h2><div className="metrics-grid">
+      <section className="panel" aria-labelledby="test-results-title">
+        <h2 id="test-results-title">Test results</h2>
+        {execution.suites.map((suite) => <article className="test-suite" key={suite.id}><div className="section-header"><h3>{suite.name}</h3><span className={`pill ${statusClass(suite.status)}`}>{suite.status}</span></div>
+          {suite.tests.length === 0 ? <Feedback>No tests executed because this run ended before browser assertions started.</Feedback> : <div className="test-list">{suite.tests.map((test) => <article key={test.stableKey} className="test-result">
+            <header><strong>{test.title}</strong><span className={`pill ${statusClass(test.status)}`}>{test.status}</span></header>
+            <p>{test.framework} · {test.file} · {test.durationMs}ms</p>
+            {test.error ? <div className="failure-detail"><strong>{test.error.message}</strong><span>Expected: {test.error.expected ?? 'Not available'}</span><span>Actual: {test.error.actual ?? 'Not available'}</span>{test.error.stack ? <pre>{test.error.stack}</pre> : null}</div> : null}
+          </article>)}</div>}
+        </article>)}
+      </section>
+      <section className="panel" aria-labelledby="execution-regression-title"><div className="section-header"><h2 id="execution-regression-title" aria-label="Regression Delta"><HelpTerm label="Regression Delta" description={helpText.regressionDelta} /></h2><span>Compared with the previous execution from the same evidence source</span></div><div className="delta-grid">
+        <div><span>New failures</span><strong>{execution.regressionDelta.newFailures}</strong><small>Tests that started failing now</small></div><div><span>Recovered</span><strong>{execution.regressionDelta.recovered}</strong><small>Failing before, passing now</small></div>
+        <div><span>Persistent failures</span><strong>{execution.regressionDelta.persistentFailures}</strong><small>Tests that remain failing</small></div><div><span>New tests</span><strong>{execution.regressionDelta.newTests}</strong><small>First seen in this report</small></div>
+        <div><span>Removed tests</span><strong>{execution.regressionDelta.removedTests}</strong><small>No longer in this report</small></div>
+      </div></section>
+      <section className="panel" aria-labelledby="execution-evidence-title"><h2 id="execution-evidence-title">Artifacts and evidence</h2><p className="section-copy">Trace this normalized execution back to its CI workflow, job and retained report when those links are available.</p><div className="metrics-grid">
         {Object.entries(execution.pipeline).map(([key, value]) => {
-          if (!value) return <div key={key}><span>{key}</span><strong>Not provided</strong></div>;
+          const label = metadataLabel(key);
+          if (!value) return <div key={key}><span>{label}</span><strong>Not provided</strong></div>;
           const displayValue = formatMetadataValue(key, value, window.location.origin);
           return copyableKeys.has(key) || key.toLowerCase().endsWith('url')
-            ? <CopyableValue key={key} label={key} value={displayValue} />
-            : <div key={key}><span>{key}</span><strong>{displayValue}</strong></div>;
+            ? <CopyableValue key={key} label={label} value={displayValue} />
+            : <div key={key}><span>{label}</span><strong>{displayValue}</strong></div>;
         })}
-        <div><span>Source</span><strong>{execution.origin === 'SEEDED_DEMO' ? 'SEEDED_DEMO' : execution.source}</strong></div><div><span>Origin</span><strong><span className={`origin-badge ${originClass(execution.origin)}`}>{originLabel(execution.origin)}</span></strong></div>
-        <div><span>Raw format</span><strong>{execution.reportFormat}</strong></div><div><span>Suite type</span><strong>{execution.suiteType}</strong></div>
-      </div></section>
-      <section className="panel"><h2>Regression delta</h2><div className="delta-grid">
-        <div><span>New failures</span><strong>{execution.regressionDelta.newFailures}</strong></div><div><span>Recovered</span><strong>{execution.regressionDelta.recovered}</strong></div>
-        <div><span>Persistent failures</span><strong>{execution.regressionDelta.persistentFailures}</strong></div><div><span>New tests</span><strong>{execution.regressionDelta.newTests}</strong></div>
-        <div><span>Removed tests</span><strong>{execution.regressionDelta.removedTests}</strong></div>
-      </div></section>
-      {execution.suites.map((suite) => <section className="panel" key={suite.id}><div className="section-header"><h2>{suite.name}</h2><span className={`pill ${statusClass(suite.status)}`}>{suite.status}</span></div>
-        {suite.tests.length === 0 ? <Feedback>No test cases executed.</Feedback> : <div className="test-list">{suite.tests.map((test) => <article key={test.stableKey} className="test-result">
-          <header><strong>{test.title}</strong><span className={`pill ${statusClass(test.status)}`}>{test.status}</span></header>
-          <p>{test.framework} · {test.file} · {test.durationMs}ms</p>
-          {test.error ? <div className="failure-detail"><strong>{test.error.message}</strong><span>Expected: {test.error.expected ?? 'Not available'}</span><span>Actual: {test.error.actual ?? 'Not available'}</span>{test.error.stack ? <pre>{test.error.stack}</pre> : null}</div> : null}
-        </article>)}</div>}
-      </section>)}
-      <section className="panel"><h2>Artifact metadata</h2>{execution.artifact ? <p><code>{execution.artifact.localPath}</code><br />Raw report is retained locally and is not exposed by default.</p> : <p>Seeded history has no local artifact.</p>}</section>
+        <div><span>Data source</span><strong>{originSourceLabel(execution.origin)}</strong></div>
+        <div><span>Report format</span><strong>{formatReport(execution.reportFormat)}</strong></div><div><span>Suite type</span><strong>{execution.suiteType}</strong></div>
+      </div>{execution.artifact ? <p><code>{execution.artifact.localPath}</code><br />The raw local demo report is not exposed by the API.</p> : execution.pipeline.artifactUrl ? <p>The real report is retained by the linked CI artifact.</p> : <p>No retained artifact is associated with this synthetic demo execution.</p>}</section>
     </>
   );
 }
 
-const flowSteps = [
-  ['Code change', 'A developer updates the product code.'],
-  ['GitHub Actions', 'The fictional continuous-integration workflow starts.'],
-  ['Automated Tests', 'Configured test suites exercise the change.'],
-  ['Test Report', 'The framework exports structured results.'],
-  ['Artifact', 'The workflow keeps the report as traceable evidence.'],
-  ['QualityOps API', 'The platform receives the artifact.'],
-  ['Normalizer', 'Framework-specific fields become one common model.'],
-  ['Persistence', 'Normalized history is stored for comparison.'],
-  ['Dashboard', 'Teams review trends, failures and freshness.']
-];
+const flowSteps = ['CI Pipeline', 'Automated Tests', 'Test Reports', 'TestOps Hub', 'History + Metrics + Regression Signals'];
 
 function HowItWorksPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Public architecture"
-        title="How it works"
-        description="From a code change to a quality decision, in one traceable flow."
+        eyebrow="Start here"
+        title="How It Works"
+        description="A plain-language guide from a CI test run to a quality decision."
         demo={false}
       />
-      <section className="panel flow-panel" aria-labelledby="flow-title">
-        <h2 id="flow-title">From change to decision</h2>
-        <ol className="flow-list" aria-label="QualityOps Hub processing flow">
-          {flowSteps.map(([title, description], index) => (
-            <li key={title}>
-              <div className="flow-number">{index + 1}</div>
-              <div><strong>{title}</strong><span>{description}</span></div>
-              {index < flowSteps.length - 1 ? <span className="flow-arrow" aria-hidden="true">↓</span> : null}
-            </li>
-          ))}
-        </ol>
-        <p className="footnote">QualityOps Hub consolidates test evidence; it does not replace the test frameworks or the engineering decisions made from their results.</p>
+      <section className="panel" aria-labelledby="how-problem-title"><p className="eyebrow">1 · The problem</p><h2 id="how-problem-title">Evidence is spread across tools</h2><p>CI status, framework reports, artifacts, logs and older runs answer different questions. Reviewing them separately makes regressions harder to spot.</p></section>
+      <section className="panel" aria-labelledby="flow-title">
+        <p className="eyebrow">2 · The flow</p><h2 id="flow-title">From CI to one quality view</h2>
+        <ol className="plain-flow" aria-label="TestOps Hub processing flow">{flowSteps.map((step) => <li key={step}>{step}</li>)}</ol>
+        <p className="footnote">Instead of checking multiple pipelines and reports manually, the platform provides one consolidated view of test quality.</p>
       </section>
+      <div className="how-grid">
+        <section className="panel"><p className="eyebrow">3 · Real CI execution</p><h2>Browsers run in GitHub Actions</h2><p>Cypress and Playwright execute real browser scenarios. Their workflow, job and report artifact remain traceable.</p></section>
+        <section className="panel"><p className="eyebrow">4 · Report normalization</p><h2>Different reports become comparable</h2><p>Versioned adapters validate Mochawesome, Playwright JSON and the Mobile Harness Demo, then map them to one execution model.</p></section>
+        <section className="panel"><p className="eyebrow">5 · Persistence</p><h2>History is stored in PostgreSQL</h2><p>Authenticated reports, test cases and pipeline metadata are persisted together so each result can be traced over time.</p></section>
+        <section className="panel"><p className="eyebrow">6 · Dashboard metrics</p><h2>Counts become understandable signals</h2><p>Executed, passed, failed, infrastructure errors, Approval Rate and Quality Score use only the latest official CI evidence.</p></section>
+        <section className="panel"><p className="eyebrow">7 · Regression detection</p><h2>Changes are compared over time</h2><p>Regression Delta identifies tests that started failing, recovered, stayed broken, appeared or disappeared.</p></section>
+        <section className="panel"><p className="eyebrow">8 · Demo vs official evidence</p><h2>The source is always visible</h2><p><strong>Official CI</strong> affects quality metrics. <strong>Hosted Preview</strong> demonstrates the flow safely. <strong>Demo Data</strong> is synthetic interface context.</p></section>
+      </div>
     </>
   );
 }
@@ -850,21 +916,22 @@ function PlatformHealthPage() {
   }, []);
 
   const services = [
-    { name: 'API', state: apiUnavailable ? 'unavailable' : health?.api ?? 'checking', detail: 'Fastify HTTP API' },
-    { name: 'PostgreSQL', state: apiUnavailable ? 'unknown' : health?.database ?? 'checking', detail: 'Persistent execution history' },
-    { name: 'Object Storage', state: health?.objectStorage ?? 'not-configured', detail: 'Optional for the current portfolio preview' },
+    { name: 'API', state: apiUnavailable ? 'unavailable' : health ? 'operational' : 'checking', detail: 'Receives dashboard and ingestion requests' },
+    { name: 'Database', state: apiUnavailable ? 'unknown' : health?.database === 'ready' ? 'connected' : health?.database ?? 'checking', detail: 'PostgreSQL stores execution history' },
+    { name: 'Browser execution', state: 'GitHub Actions', detail: 'Real Cypress and Playwright runs happen in external CI' },
     {
-      name: 'Demo runners',
-      state: apiUnavailable ? 'unknown' : health?.backgroundJobs ?? 'checking',
+      name: 'Hosted runner',
+      state: apiUnavailable ? 'unknown' : health?.demoRunnerMode === 'hosted-preview' ? 'preview only' : health?.backgroundJobs ?? 'checking',
       detail: health?.demoRunnerMode === 'hosted-preview'
-        ? 'Hosted preview only; external CI integration pending'
+        ? 'Demonstrates the flow without running a browser or creating official evidence'
         : 'Allow-listed local jobs'
-    }
+    },
+    { name: 'Object storage', state: 'not configured', detail: 'CI artifacts retain real reports; persistent uploads are not enabled' }
   ];
 
   return (
     <>
-      <PageHeader eyebrow="Runtime visibility" title="Platform Health" description="Live status without optimistic fallbacks." />
+      <PageHeader eyebrow="Runtime status" title="Platform Health" description="Plain-language status for the API, database, browser execution and hosted preview." />
       {apiUnavailable ? <Feedback error>The API is unavailable. Dependent service states cannot be confirmed.</Feedback> : null}
       {!apiUnavailable && !health ? <Feedback>Checking platform services…</Feedback> : null}
       <section className="panel" aria-labelledby="platform-services-title">
@@ -873,7 +940,7 @@ function PlatformHealthPage() {
           {services.map((service) => (
             <div key={service.name}>
               <span>{service.name}</span>
-              <strong><span className={`pill ${statusClass(service.state)}`}>{service.state.replaceAll('-', ' ')}</span></strong>
+              <strong><span className={`pill ${statusClass(service.state)}`}>{service.state}</span></strong>
               <small>{service.detail}</small>
             </div>
           ))}
@@ -967,7 +1034,7 @@ function AppShell() {
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="mobile-header">
-        <span className="mobile-brand"><span className="brand-mark" aria-hidden="true">Q</span>QualityOps Hub</span>
+        <span className="mobile-brand"><span className="brand-mark" aria-hidden="true">T</span>TestOps Hub</span>
         <button
           ref={menuButtonRef}
           className="menu-button"
@@ -991,9 +1058,9 @@ function AppShell() {
         role={drawerOpen ? 'dialog' : undefined}
       >
         <div className="sidebar-heading">
-          <NavLink className="brand" to="/" aria-label="QualityOps Hub overview">
-            <span className="brand-mark" aria-hidden="true">Q</span>
-            <span><strong>QualityOps</strong><small>Hub</small></span>
+          <NavLink className="brand" to="/" aria-label="TestOps Hub overview">
+            <span className="brand-mark" aria-hidden="true">T</span>
+            <span><strong>TestOps</strong><small>Hub</small></span>
           </NavLink>
           <button className="drawer-close" type="button" aria-label="Close navigation" onClick={closeDrawer}>×</button>
         </div>
