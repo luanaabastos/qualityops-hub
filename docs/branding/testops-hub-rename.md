@@ -61,7 +61,7 @@ The local workspace folder remains `qualityops-hub`; this is a local implementat
 
 | Area | Impact of `qualityops-hub` → `testops-hub` |
 |---|---|
-| Render integration | The existing service remains healthy and keeps the historical service name and URL. Its GitHub App access remains associated with the same renamed repository; auto-deploy stays disabled. |
+| Render integration | The existing service remains healthy and keeps the historical service name and URL. GitHub preserved the repository identity and old source URL redirect; no reconnect requirement was observed. The dashboard-managed source setting was not changed, and auto-deploy stays disabled. |
 | GitHub Actions | Workflows remain active. Badges, canonical links and documentation use the new slug; historical run and artifact URLs remain valid through GitHub redirects. |
 | README and badges | Canonical repository, badge, tag and release links use `testops-hub`. |
 | Artifact URLs | Existing workflow artifact links retain the old path and historical IDs; GitHub redirects them to the renamed repository. |
