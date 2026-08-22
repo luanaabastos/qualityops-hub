@@ -1,28 +1,14 @@
 # QualityOps Hub
 
-**Open-source TestOps portfolio platform that normalizes CI test reports into traceable quality metrics, history, and regression signals.**
+**QualityOps Hub centralizes automated test results, execution history, coverage and regression signals from CI pipelines.**
 
 **Live Demo:** [qualityops-hub.onrender.com](https://qualityops-hub.onrender.com)<br>
 **Architecture:** React + Fastify on Render, PostgreSQL on Neon, browser automation in GitHub Actions<br>
 **CI Status:** [![Platform CI](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml/badge.svg)](https://github.com/luanaabastos/qualityops-hub/actions/workflows/platform.yml)
 
-`v1.0.0 release candidate` · [MIT](LICENSE) · Node.js `20.20.1` · pnpm `10.34.5`
+[`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0) · [MIT](LICENSE) · Node.js `20.20.1` · pnpm `10.34.5`
 
 > Every product, test, execution, and metric in this project is fictional and synthetic.
-
-## Problem and solution
-
-Automated-test results are commonly fragmented across CI jobs, framework reports, artifacts, logs, and historical runs. Answering whether quality improved or regressed then requires manual reconciliation across tools and formats.
-
-QualityOps Hub provides one bounded path from report to decision-ready evidence:
-
-- versioned adapters normalize framework-specific reports;
-- PostgreSQL keeps a traceable execution history;
-- quality metrics separate assertions from infrastructure errors;
-- Regression Delta compares stable scenario identities over time;
-- pipeline metadata connects the dashboard back to the originating CI evidence.
-
-It complements CI rather than replacing it: CI executes the tests; QualityOps Hub explains their results over time.
 
 ## Live Demo
 
@@ -68,6 +54,20 @@ flowchart TD
 ```
 
 GitHub Actions runs browser automation and retains the raw artifacts. Fastify validates authenticated report envelopes, a versioned adapter maps each accepted format into a common model, and Neon persists the normalized history. Render hosts the same-origin React application and API.
+
+## Problem and solution
+
+Automated-test results are commonly fragmented across CI jobs, framework reports, artifacts, logs, and historical runs. Answering whether quality improved or regressed then requires manual reconciliation across tools and formats.
+
+QualityOps Hub provides one bounded path from report to decision-ready evidence:
+
+- versioned adapters normalize framework-specific reports;
+- PostgreSQL keeps a traceable execution history;
+- quality metrics separate assertions from infrastructure errors;
+- Regression Delta compares stable scenario identities over time;
+- pipeline metadata connects the dashboard back to the originating CI evidence.
+
+It complements CI rather than replacing it: CI executes the tests; QualityOps Hub explains their results over time.
 
 ## Features
 
@@ -196,7 +196,7 @@ Unit tests cover shared quality semantics and report adapters. PostgreSQL integr
 
 ## Release status
 
-The codebase is prepared as a **v1.0.0 release candidate**. No `v1.0.0` tag or GitHub Release is created until human approval.
+**v1.0.0 is published** as a final [GitHub Release](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0). The annotated tag points to the approved release commit.
 
 ## License and disclaimer
 

@@ -1,21 +1,21 @@
 # Public portfolio release manifest
 
-This manifest records the QualityOps Hub v1.0.0 release-candidate boundary. It does not create a tag or publish a GitHub Release.
+This manifest records the published QualityOps Hub v1.0.0 portfolio release.
 
-- Release-preparation base HEAD: `f79d4c92f9fb77bbca6c0496b2071d9faf974539`
+- Release commit: `f9082fba51a2625609783cb9cb69c6739d41dc91`
 - Branch: `main`
 - Runtime: Node.js `20.20.1`, pnpm `10.34.5`
 - Package status: private monorepo packages, version `1.0.0`
-- Public status: **v1.0.0 release candidate**
+- Public status: **v1.0.0 published**
 - License: `MIT`
 - `LICENSE=MIT`
 - Repository: `https://github.com/luanaabastos/qualityops-hub`
 - Live demo: `https://qualityops-hub.onrender.com`
 - External CI: `EXTERNAL_CI_ACTIVE`
-- Tag: `NOT_CREATED`
-- Release: `NOT_PUBLISHED`
+- Tag: [`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/tree/v1.0.0)
+- Release: [`PUBLISHED`](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0)
 
-The final release-preparation HEAD is reported after the documentation commits are created. The tag and GitHub Release require separate human approval.
+The annotated tag remains fixed at the approved release commit. This closure documentation does not move the tag or create another release.
 
 ## Real CI evidence
 
@@ -71,6 +71,6 @@ All six PNG files were captured from the public hosted application and visually 
 - There is no user authentication, multi-tenancy, distributed queue, or distributed rate limiting.
 - Every portfolio product and dataset is fictional and synthetic.
 
-`QUALITYOPS_V1_RELEASE_CANDIDATE_READY`
+`QUALITYOPS_V1_RELEASE_PUBLISHED`
 
-`HUMAN_RELEASE_APPROVAL_REQUIRED`
+`QUALITYOPS_PORTFOLIO_PROJECT_COMPLETE`

@@ -1,6 +1,6 @@
 # v1.0.0 portfolio release checklist
 
-Checkpoint 10 prepares QualityOps Hub as a public v1.0.0 release candidate. The repository and hosted demo are public; the `v1.0.0` tag and GitHub Release remain intentionally unpublished pending human approval.
+QualityOps Hub v1.0.0 is published as a final portfolio release. The repository, hosted demo, annotated tag, and GitHub Release are public.
 
 ## Product and evidence
 
@@ -24,7 +24,7 @@ Checkpoint 10 prepares QualityOps Hub as a public v1.0.0 release candidate. The 
 - [x] Repository description is factual and the topics are relevant.
 - [x] Portuguese and English portfolio material is ready.
 - [x] Portfolio case study is ready.
-- [x] v1.0.0 release notes are ready for review.
+- [x] v1.0.0 release notes match the published final release.
 
 ## Experience review
 
@@ -47,11 +47,11 @@ Checkpoint 10 prepares QualityOps Hub as a public v1.0.0 release candidate. The 
 - [x] Production Playwright passed: 6 passed, 0 failed, 0 skipped.
 - [x] Hosted-preview Playwright passed: 1 passed, 0 failed, 0 skipped.
 
-## Publication boundary
+## Publication
 
-- [ ] Create tag `v1.0.0` — requires human approval.
-- [ ] Publish GitHub Release — requires human approval.
+- [x] Annotated tag [`v1.0.0`](https://github.com/luanaabastos/qualityops-hub/tree/v1.0.0) points to the approved release commit.
+- [x] Final [GitHub Release](https://github.com/luanaabastos/qualityops-hub/releases/tag/v1.0.0) is published without attached local artifacts.
 
-`QUALITYOPS_V1_RELEASE_CANDIDATE_READY`
+`QUALITYOPS_V1_RELEASE_PUBLISHED`
 
-`HUMAN_RELEASE_APPROVAL_REQUIRED`
+`QUALITYOPS_PORTFOLIO_PROJECT_COMPLETE`
